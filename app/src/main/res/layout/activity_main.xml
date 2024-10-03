@@ -1,8 +1,106 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/main"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".MainActivity"/>
+    android:orientation="vertical"
+    tools:context=".MainActivity">
+
+    <!-- 상단 Toolbar -->
+    <androidx.appcompat.widget.Toolbar
+        android:id="@+id/toolbar_top"
+        android:layout_width="match_parent"
+        android:layout_height="?attr/actionBarSize"
+        android:background="?attr/colorPrimary"
+        android:theme="?attr/actionBarTheme" />
+
+    <!-- 중간 LinearLayout -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:orientation="horizontal">
+
+        <!-- 왼쪽 LinearLayout (3 비율) -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="3"
+            android:orientation="vertical"
+            android:padding="8dp">
+
+            <TextView
+                android:id="@+id/textView"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:text="선택된 텍스트가 여기에 표시됩니다."
+                android:textSize="28sp"
+                android:letterSpacing="0.05"
+                android:lineSpacingExtra="5dp"
+                android:textColor="#000000"
+                android:gravity="start"
+                android:background="#FFFFFF"
+                android:padding="8dp" />
+        </LinearLayout>
+
+        <!-- 오른쪽 LinearLayout (1 비율) -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:padding="8dp">
+
+            <Button
+                android:id="@+id/button_select_file"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="텍스트 파일 선택" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- 하단 Toolbar에 커스텀 LinearLayout 추가 -->
+    <androidx.appcompat.widget.Toolbar
+        android:id="@+id/toolbar_bottom"
+        android:layout_width="match_parent"
+        android:layout_height="?attr/actionBarSize"
+        android:background="?attr/colorPrimary"
+        android:theme="?attr/actionBarTheme">
+
+        <!-- 하단 Toolbar 내부에 LinearLayout을 사용하여 정렬 -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="horizontal">
+
+            <!-- 왼쪽으로 정렬된 "이전 페이지" 버튼 -->
+            <Button
+                android:id="@+id/button_prev_page"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="이전 페이지"
+                android:layout_gravity="start|center_vertical"
+                android:padding="16dp"
+                android:textColor="@android:color/white"/>
+
+            <!-- 중간에 공간을 채워서 양 끝으로 배치할 수 있게 조정 -->
+            <View
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"/>
+
+            <!-- 오른쪽으로 정렬된 "다음 페이지" 버튼 -->
+            <Button
+                android:id="@+id/button_next_page"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="다음 페이지"
+                android:layout_gravity="end|center_vertical"
+                android:padding="16dp"
+                android:textColor="@android:color/white"/>
+        </LinearLayout>
+    </androidx.appcompat.widget.Toolbar>
+</LinearLayout>
