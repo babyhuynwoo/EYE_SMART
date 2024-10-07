@@ -2,12 +2,16 @@ package com.example.eye_smart;
 
 import android.content.Intent;
 import android.content.res.Configuration;
+import android.graphics.Color;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.text.Layout;
+import android.text.Spannable;
+import android.text.SpannableString;
 import android.text.StaticLayout;
 import android.text.TextPaint;
+import android.util.Log;
 import android.view.View;
 import android.view.WindowInsets;
 import android.view.WindowInsetsController;
@@ -25,19 +29,20 @@ import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.List;
 
+
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 
 public class MainActivity extends AppCompatActivity {
 
-    private static final int LINES_PER_PAGE_DEFAULT = 10; // 기본 페이지당 표시할 라인 수
+    private static final int LINES_PER_PAGE_DEFAULT = 10; // 기본 페이지 당 표시할 라인 수
 
     private TextView textView;
     private int currentPage = 0;
     private Uri fileUri;
     private FilePicker filePicker;
 
-    private int maxLinesPerPage = LINES_PER_PAGE_DEFAULT; // 페이지당 최대 화면 라인 수
+    private int maxLinesPerPage = LINES_PER_PAGE_DEFAULT; // 페이지 당 최대 화면 라인 수
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -199,22 +204,15 @@ public class MainActivity extends AppCompatActivity {
                                     pageContent.setLength(0);
                                 }
                             } else {
-                                // 마지막 라인을 제거하고 페이지 완료
-                                String lastLine = pageLines.remove(pageLines.size() - 1);
-                                pageContent.setLength(pageContent.length() - (lastLine.length() + 1)); // '\n' 포함
-
+                                // 라인을 제거하지 않고 바로 다음 페이지로 이동
                                 if (currentPage == pageNumber) {
                                     // 현재 페이지이면 표시
                                     break;
                                 } else {
-                                    // 다음 페이지로 이동하고 제거한 라인부터 다시 시작
+                                    // 다음 페이지로 이동
                                     currentPage++;
                                     pageLines.clear();
                                     pageContent.setLength(0);
-
-                                    // 제거한 라인을 다음 페이지의 시작으로 추가
-                                    pageLines.add(lastLine);
-                                    pageContent.append(lastLine).append("\n");
                                 }
                             }
                         }
@@ -228,7 +226,54 @@ public class MainActivity extends AppCompatActivity {
 
                     String finalContent = pageContent.toString();
 
-                    runOnUiThread(() -> textView.setText(finalContent));
+                    runOnUiThread(() -> {
+                        // 텍스트를 SpannableString으로 변환하여 스타일 적용
+                        SpannableString spannableString = new SpannableString(finalContent);
+
+                        textView.setText(finalContent);
+
+                        // 각 라인의 좌표를 가져오기 위해 레이아웃이 준비된 후 실행
+                        textView.post(() -> {
+                            Layout layout = textView.getLayout();
+                            if (layout != null) {
+                                int lineCount = layout.getLineCount();
+                                for (int i = 0; i < lineCount; i++) {
+                                    int lineStartOffset = layout.getLineStart(i);
+                                    int lineEndOffset = layout.getLineEnd(i);
+
+                                    // 각 라인의 (x, y) 좌표 가져오기
+                                    float x = layout.getLineLeft(i) + textView.getPaddingLeft();
+                                    float y = layout.getLineBaseline(i) + textView.getPaddingTop();
+
+                                    // 라인 텍스트 가져오기
+                                    String lineText = finalContent.substring(lineStartOffset, lineEndOffset);
+                                    String[] words = lineText.split(" ");
+
+                                    int wordStart = lineStartOffset;
+                                    for (String word : words) {
+                                        int wordEnd = wordStart + word.length();
+
+                                        // 각 단어에 CustomSpan 적용하여 테두리만 표시
+                                        spannableString.setSpan(
+                                                new CustomSpan(Color.BLACK), // 테두리 색상 지정
+                                                wordStart,
+                                                wordEnd,
+                                                Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
+                                        );
+
+                                        // 다음 단어의 시작 위치로 이동
+                                        wordStart = wordEnd + 1; // 단어 간 공백 고려
+
+                                        // 좌표와 함께 로그 출력
+                                        Log.d("LineInfo", "단어: " + word + " (x: " + x + ", y: " + y + ")");
+                                    }
+                                }
+
+                                // 스타일 적용된 SpannableString을 TextView에 설정
+                                textView.setText(spannableString);
+                            }
+                        });
+                    });
 
                 } catch (IOException e) {
                     e.printStackTrace();
@@ -267,3 +312,4 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 }
+
