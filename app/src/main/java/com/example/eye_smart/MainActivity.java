@@ -216,6 +216,7 @@ public class MainActivity extends AppCompatActivity {
                                 }
                             }
                         }
+
                     }
 
                     // 원하는 페이지에 도달했는지 확인
@@ -255,7 +256,7 @@ public class MainActivity extends AppCompatActivity {
 
                                         // 각 단어에 CustomSpan 적용하여 테두리만 표시
                                         spannableString.setSpan(
-                                                new CustomSpan(Color.BLACK), // 테두리 색상 지정
+                                                new CustomSpan(Color.BLACK, 50), // 테두리 색상 지정
                                                 wordStart,
                                                 wordEnd,
                                                 Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
