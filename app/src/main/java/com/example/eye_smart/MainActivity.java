@@ -1,11 +1,20 @@
 package com.example.eye_smart;
 
 import android.content.Intent;
+import android.content.res.Configuration;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
+import android.text.Layout;
+import android.text.StaticLayout;
+import android.text.TextPaint;
+import android.view.View;
+import android.view.WindowInsets;
+import android.view.WindowInsetsController;
 import android.widget.Button;
 import android.widget.TextView;
-import androidx.annotation.Nullable;
+
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 
@@ -16,43 +25,63 @@ import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.List;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
+
 public class MainActivity extends AppCompatActivity {
 
-    private static final int READ_REQUEST_CODE = 18;
-    private static final int LINES_PER_PAGE = 6; // 페이지당 표시할 라인 수
+    private static final int LINES_PER_PAGE_DEFAULT = 10; // 기본 페이지당 표시할 라인 수
 
     private TextView textView;
-    private Button buttonSelectFile;
-    private Button buttonPrevPage;
-    private Button buttonNextPage;
-
-    private List<String> allLines = new ArrayList<>();
     private int currentPage = 0;
-    private int totalPages = 0;
     private Uri fileUri;
+    private FilePicker filePicker;
+
+    private int maxLinesPerPage = LINES_PER_PAGE_DEFAULT; // 페이지당 최대 화면 라인 수
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        // 레이아웃이 모두 그려진 후에 hideSystemUI() 호출
+        getWindow().getDecorView().post(this::hideSystemUI);
+
         // 상단 툴바 설정
         Toolbar toolbarTop = findViewById(R.id.toolbar_top);
         setSupportActionBar(toolbarTop);
 
-        // 하단 툴바 설정
-        Toolbar toolbarBottom = findViewById(R.id.toolbar_bottom);
-
         // 뷰 초기화
         textView = findViewById(R.id.textView);
-        buttonSelectFile = findViewById(R.id.button_select_file);
-        buttonPrevPage = findViewById(R.id.button_prev_page);
-        buttonNextPage = findViewById(R.id.button_next_page);
+        Button buttonSelectFile = findViewById(R.id.button_select_file);
+        Button buttonPrevPage = findViewById(R.id.button_prev_page);
+        Button buttonNextPage = findViewById(R.id.button_next_page);
 
-        textView.setLineSpacing(0, 4f);
+        // 줄 간격 설정
+        float lineSpacing = 3;
+        textView.setLineSpacing(0, lineSpacing);
+
+        // TextView의 높이를 계산하여 LINES_PER_PAGE를 설정
+        calculateLinesPerPage();
+
+        // 파일 선택기 객체 생성 및 런처 설정
+        ActivityResultLauncher<Intent> filePickerLauncher = registerForActivityResult(
+                new ActivityResultContracts.StartActivityForResult(),
+                result -> {
+                    if (result.getResultCode() == RESULT_OK) {
+                        Intent data = result.getData();
+                        if (data != null) {
+                            fileUri = data.getData();
+                            currentPage = 0;
+                            displayPage(currentPage);
+                        }
+                    }
+                }
+        );
+        filePicker = new FilePicker(this, filePickerLauncher);
 
         // 파일 선택 버튼 클릭 리스너 설정
-        buttonSelectFile.setOnClickListener(v -> openFilePicker());
+        buttonSelectFile.setOnClickListener(v -> filePicker.pickTextFile());
 
         // 이전 페이지 버튼 클릭 리스너
         buttonPrevPage.setOnClickListener(v -> loadPreviousPage());
@@ -61,77 +90,180 @@ public class MainActivity extends AppCompatActivity {
         buttonNextPage.setOnClickListener(v -> loadNextPage());
     }
 
-    private void openFilePicker() {
-        Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
-        intent.addCategory(Intent.CATEGORY_OPENABLE);
-        intent.setType("text/plain");
-        startActivityForResult(intent, READ_REQUEST_CODE);
-    }
-
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode,
-                                    @Nullable Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-        if (requestCode == READ_REQUEST_CODE && resultCode == RESULT_OK) {
-            if (data != null) {
-                fileUri = data.getData();
-                currentPage = 0;
-                readFile();
+    // 전체 화면 모드 설정 메서드
+    private void hideSystemUI() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) { // API 30 이상 (Android 11 이상)
+            getWindow().setDecorFitsSystemWindows(false);
+            final WindowInsetsController controller = getWindow().getInsetsController();
+            if (controller != null) {
+                controller.hide(WindowInsets.Type.statusBars() | WindowInsets.Type.navigationBars());
+                controller.setSystemBarsBehavior(WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
             }
+        } else { // API 30 미만 (Android 10 이하)
+            View decorView = getWindow().getDecorView();
+            decorView.setSystemUiVisibility(
+                    View.SYSTEM_UI_FLAG_FULLSCREEN
+                            | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                            | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+                            | View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                            | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                            | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+            );
         }
     }
 
-    private void readFile() {
-        new Thread(() -> {
-            try (InputStream inputStream = getContentResolver().openInputStream(fileUri);
-                 BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream))) {
+    @Override
+    protected void onResume() {
+        super.onResume();
+        hideSystemUI(); // 다시 화면이 포커스를 얻었을 때 시스템 UI 숨김 처리
+    }
 
-                allLines.clear();
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    line = line.trim(); // 앞뒤 공백 제거
-                    if (!line.isEmpty()) {
-                        allLines.add(line);
-                    }
+    @Override
+    public void onConfigurationChanged(@NonNull Configuration newConfig) {
+        super.onConfigurationChanged(newConfig);
+        // 화면 회전 시 페이지당 라인 수 재계산 및 페이지 내용 업데이트
+        calculateLinesPerPage();
+    }
+
+    private void calculateLinesPerPage() {
+        textView.post(() -> {
+            // 실제 텍스트 뷰 높이와 가용 높이 계산
+            int textViewHeight = textView.getHeight();
+            int availableHeight = textViewHeight - textView.getPaddingTop() - textView.getPaddingBottom();
+
+            if (availableHeight <= 0) {
+                maxLinesPerPage = LINES_PER_PAGE_DEFAULT;
+                return;
+            }
+
+            // 줄 높이 계산
+            float lineHeight = textView.getLineHeight();
+
+            if (lineHeight > 0) {
+                // 가용 높이와 라인 높이를 이용하여 페이지당 표시할 수 있는 최대 라인 수 계산
+                maxLinesPerPage = Math.max(1, (int) Math.floor(availableHeight / lineHeight)); // 최소 1줄은 출력되도록 설정
+            } else {
+                maxLinesPerPage = LINES_PER_PAGE_DEFAULT;
+            }
+
+            // 페이지 계산 후 표시
+            displayPage(currentPage);
+        });
+    }
+
+    private void displayPage(int pageNumber) {
+        new Thread(() -> {
+            try {
+                if (fileUri == null) {
+                    runOnUiThread(() -> textView.setText("파일을 선택하지 않았습니다."));
+                    return;
                 }
 
-                totalPages = (int) Math.ceil((double) allLines.size() / LINES_PER_PAGE);
+                InputStream inputStream = getContentResolver().openInputStream(fileUri);
+                if (inputStream == null) {
+                    runOnUiThread(() -> textView.setText("파일을 열 수 없습니다."));
+                    return;
+                }
 
-                runOnUiThread(() -> displayPage(currentPage));
+                try (BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream))) {
+                    int currentPage = 0;
+                    String line;
+                    List<String> pageLines = new ArrayList<>();
+                    StringBuilder pageContent = new StringBuilder();
+                    TextPaint textPaint = textView.getPaint();
+                    int width = textView.getWidth() - textView.getPaddingLeft() - textView.getPaddingRight();
 
-            } catch (IOException e) {
+                    while ((line = reader.readLine()) != null) {
+                        line = line.trim();
+                        if (line.isEmpty()) {
+                            continue;
+                        }
+
+                        // 라인을 페이지에 추가
+                        pageLines.add(line);
+                        pageContent.append(line).append("\n");
+
+                        // 현재까지의 텍스트로 생성되는 화면 라인 수 계산
+                        int displayLines = getDisplayLineCount(pageContent.toString(), textPaint, width);
+
+                        if (displayLines > maxLinesPerPage) {
+                            if (pageLines.size() == 1) {
+                                // 한 라인 자체가 페이지를 초과하는 경우, 해당 라인을 포함시킴
+                                if (currentPage == pageNumber) {
+                                    // 현재 페이지이므로 그대로 표시
+                                    break;
+                                } else {
+                                    // 다음 페이지로 이동
+                                    currentPage++;
+                                    pageLines.clear();
+                                    pageContent.setLength(0);
+                                }
+                            } else {
+                                // 마지막 라인을 제거하고 페이지 완료
+                                String lastLine = pageLines.remove(pageLines.size() - 1);
+                                pageContent.setLength(pageContent.length() - (lastLine.length() + 1)); // '\n' 포함
+
+                                if (currentPage == pageNumber) {
+                                    // 현재 페이지이면 표시
+                                    break;
+                                } else {
+                                    // 다음 페이지로 이동하고 제거한 라인부터 다시 시작
+                                    currentPage++;
+                                    pageLines.clear();
+                                    pageContent.setLength(0);
+
+                                    // 제거한 라인을 다음 페이지의 시작으로 추가
+                                    pageLines.add(lastLine);
+                                    pageContent.append(lastLine).append("\n");
+                                }
+                            }
+                        }
+                    }
+
+                    // 원하는 페이지에 도달했는지 확인
+                    if (currentPage < pageNumber) {
+                        runOnUiThread(() -> textView.setText("더 이상 페이지가 없습니다."));
+                        return;
+                    }
+
+                    String finalContent = pageContent.toString();
+
+                    runOnUiThread(() -> textView.setText(finalContent));
+
+                } catch (IOException e) {
+                    e.printStackTrace();
+                    runOnUiThread(() -> textView.setText("파일 읽기 오류 발생!"));
+                }
+
+            } catch (Exception e) {
                 e.printStackTrace();
-                runOnUiThread(() -> textView.setText("파일 읽기 오류 발생!"));
+                runOnUiThread(() -> textView.setText("파일 열기 오류 발생!"));
             }
         }).start();
     }
 
-    private void displayPage(int pageNumber) {
-        int startLine = pageNumber * LINES_PER_PAGE;
-        int endLine = Math.min(startLine + LINES_PER_PAGE, allLines.size());
+    private int getDisplayLineCount(String text, TextPaint textPaint, int width) {
+        StaticLayout staticLayout;
+        staticLayout = StaticLayout.Builder.obtain(text, 0, text.length(), textPaint, width)
+                .setAlignment(Layout.Alignment.ALIGN_NORMAL)
+                .setLineSpacing(textView.getLineSpacingExtra(), textView.getLineSpacingMultiplier())
+                .setIncludePad(textView.getIncludeFontPadding())
+                .build();
 
-        if (startLine >= allLines.size()) {
-            textView.setText("더 이상 페이지가 없습니다.");
-            return;
-        }
-
-        List<String> pageLines = allLines.subList(startLine, endLine);
-        String pageContent = String.join("\n", pageLines);
-
-        runOnUiThread(() -> textView.setText(pageContent));
+        return staticLayout.getLineCount();
     }
 
     private void loadNextPage() {
-        if (currentPage < totalPages - 1) {
-            currentPage++;
-            displayPage(currentPage);
-        }
+        currentPage++;
+        displayPage(currentPage);
     }
 
     private void loadPreviousPage() {
         if (currentPage > 0) {
             currentPage--;
             displayPage(currentPage);
+        } else {
+            runOnUiThread(() -> textView.setText("이전 페이지가 없습니다."));
         }
     }
 }

@@ -36,7 +36,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:text="선택된 텍스트가 여기에 표시됩니다."
-                android:textSize="28sp"
+                android:textSize="30dp"
                 android:letterSpacing="0.05"
                 android:lineSpacingExtra="5dp"
                 android:textColor="#000000"
