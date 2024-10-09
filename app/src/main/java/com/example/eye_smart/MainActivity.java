@@ -24,11 +24,8 @@ import androidx.appcompat.widget.Toolbar;
 
 import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.List;
-
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
@@ -41,6 +38,7 @@ public class MainActivity extends AppCompatActivity {
     private int currentPage = 0;
     private Uri fileUri;
     private FilePicker filePicker;
+    private FileLoader fileLoader;
 
     private int maxLinesPerPage = LINES_PER_PAGE_DEFAULT; // 페이지 당 최대 화면 라인 수
 
@@ -78,12 +76,13 @@ public class MainActivity extends AppCompatActivity {
                         if (data != null) {
                             fileUri = data.getData();
                             currentPage = 0;
+                            fileLoader = new FileLoader(this, fileUri); // FileLoader 초기화
                             displayPage(currentPage);
                         }
                     }
                 }
         );
-        filePicker = new FilePicker(this, filePickerLauncher);
+        filePicker = new FilePicker(filePickerLauncher);
 
         // 파일 선택 버튼 클릭 리스너 설정
         buttonSelectFile.setOnClickListener(v -> filePicker.pickTextFile());
@@ -164,123 +163,117 @@ public class MainActivity extends AppCompatActivity {
                     return;
                 }
 
-                InputStream inputStream = getContentResolver().openInputStream(fileUri);
-                if (inputStream == null) {
-                    runOnUiThread(() -> textView.setText("파일을 열 수 없습니다."));
+                BufferedReader reader = fileLoader.getBufferedReader();
+
+                int currentPage = 0;
+                String line;
+                List<String> pageLines = new ArrayList<>();
+                StringBuilder pageContent = new StringBuilder();
+                TextPaint textPaint = textView.getPaint();
+                int width = textView.getWidth() - textView.getPaddingLeft() - textView.getPaddingRight();
+
+                while ((line = reader.readLine()) != null) {
+                    line = line.trim();
+                    if (line.isEmpty()) {
+                        continue;
+                    }
+
+                    // 라인을 페이지에 추가
+                    pageLines.add(line);
+                    pageContent.append(line).append("\n");
+
+                    // 현재까지의 텍스트로 생성되는 화면 라인 수 계산
+                    int displayLines = getDisplayLineCount(pageContent.toString(), textPaint, width);
+
+                    if (displayLines > maxLinesPerPage) {
+                        if (pageLines.size() == 1) {
+                            // 한 라인 자체가 페이지를 초과하는 경우, 해당 라인을 포함시킴
+                            if (currentPage == pageNumber) {
+                                // 현재 페이지이므로 그대로 표시
+                                break;
+                            } else {
+                                // 다음 페이지로 이동
+                                currentPage++;
+                                pageLines.clear();
+                                pageContent.setLength(0);
+                            }
+                        } else {
+                            // 라인을 제거하지 않고 바로 다음 페이지로 이동
+                            if (currentPage == pageNumber) {
+                                // 현재 페이지이면 표시
+                                break;
+                            } else {
+                                // 다음 페이지로 이동
+                                currentPage++;
+                                pageLines.clear();
+                                pageContent.setLength(0);
+                            }
+                        }
+                    }
+                }
+
+                reader.close();
+
+                // 원하는 페이지에 도달했는지 확인
+                if (currentPage < pageNumber) {
+                    runOnUiThread(() -> textView.setText("더 이상 페이지가 없습니다."));
                     return;
                 }
 
-                try (BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream))) {
-                    int currentPage = 0;
-                    String line;
-                    List<String> pageLines = new ArrayList<>();
-                    StringBuilder pageContent = new StringBuilder();
-                    TextPaint textPaint = textView.getPaint();
-                    int width = textView.getWidth() - textView.getPaddingLeft() - textView.getPaddingRight();
+                String finalContent = pageContent.toString();
 
-                    while ((line = reader.readLine()) != null) {
-                        line = line.trim();
-                        if (line.isEmpty()) {
-                            continue;
-                        }
+                runOnUiThread(() -> {
+                    // 텍스트를 SpannableString으로 변환하여 스타일 적용
+                    SpannableString spannableString = new SpannableString(finalContent);
 
-                        // 라인을 페이지에 추가
-                        pageLines.add(line);
-                        pageContent.append(line).append("\n");
+                    textView.setText(finalContent);
 
-                        // 현재까지의 텍스트로 생성되는 화면 라인 수 계산
-                        int displayLines = getDisplayLineCount(pageContent.toString(), textPaint, width);
+                    // 각 라인의 좌표를 가져오기 위해 레이아웃이 준비된 후 실행
+                    textView.post(() -> {
+                        Layout layout = textView.getLayout();
+                        if (layout != null) {
+                            int lineCount = layout.getLineCount();
+                            for (int i = 0; i < lineCount; i++) {
+                                int lineStartOffset = layout.getLineStart(i);
+                                int lineEndOffset = layout.getLineEnd(i);
 
-                        if (displayLines > maxLinesPerPage) {
-                            if (pageLines.size() == 1) {
-                                // 한 라인 자체가 페이지를 초과하는 경우, 해당 라인을 포함시킴
-                                if (currentPage == pageNumber) {
-                                    // 현재 페이지이므로 그대로 표시
-                                    break;
-                                } else {
-                                    // 다음 페이지로 이동
-                                    currentPage++;
-                                    pageLines.clear();
-                                    pageContent.setLength(0);
-                                }
-                            } else {
-                                // 라인을 제거하지 않고 바로 다음 페이지로 이동
-                                if (currentPage == pageNumber) {
-                                    // 현재 페이지이면 표시
-                                    break;
-                                } else {
-                                    // 다음 페이지로 이동
-                                    currentPage++;
-                                    pageLines.clear();
-                                    pageContent.setLength(0);
+                                // 각 라인의 (x, y) 좌표 가져오기
+                                float x = layout.getLineLeft(i) + textView.getPaddingLeft();
+                                float y = layout.getLineBaseline(i) + textView.getPaddingTop();
+
+                                // 라인 텍스트 가져오기
+                                String lineText = finalContent.substring(lineStartOffset, lineEndOffset);
+                                String[] words = lineText.split(" ");
+
+                                int wordStart = lineStartOffset;
+                                for (String word : words) {
+                                    int wordEnd = wordStart + word.length();
+
+                                    // 각 단어에 CustomSpan 적용하여 테두리만 표시
+                                    spannableString.setSpan(
+                                            new CustomSpan(Color.BLACK, 50), // 테두리 색상 지정
+                                            wordStart,
+                                            wordEnd,
+                                            Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
+                                    );
+
+                                    // 다음 단어의 시작 위치로 이동
+                                    wordStart = wordEnd + 1; // 단어 간 공백 고려
+
+                                    // 좌표와 함께 로그 출력
+                                    Log.d("LineInfo", "단어: " + word + " (x: " + x + ", y: " + y + ")");
                                 }
                             }
+
+                            // 스타일 적용된 SpannableString을 TextView에 설정
+                            textView.setText(spannableString);
                         }
-
-                    }
-
-                    // 원하는 페이지에 도달했는지 확인
-                    if (currentPage < pageNumber) {
-                        runOnUiThread(() -> textView.setText("더 이상 페이지가 없습니다."));
-                        return;
-                    }
-
-                    String finalContent = pageContent.toString();
-
-                    runOnUiThread(() -> {
-                        // 텍스트를 SpannableString으로 변환하여 스타일 적용
-                        SpannableString spannableString = new SpannableString(finalContent);
-
-                        textView.setText(finalContent);
-
-                        // 각 라인의 좌표를 가져오기 위해 레이아웃이 준비된 후 실행
-                        textView.post(() -> {
-                            Layout layout = textView.getLayout();
-                            if (layout != null) {
-                                int lineCount = layout.getLineCount();
-                                for (int i = 0; i < lineCount; i++) {
-                                    int lineStartOffset = layout.getLineStart(i);
-                                    int lineEndOffset = layout.getLineEnd(i);
-
-                                    // 각 라인의 (x, y) 좌표 가져오기
-                                    float x = layout.getLineLeft(i) + textView.getPaddingLeft();
-                                    float y = layout.getLineBaseline(i) + textView.getPaddingTop();
-
-                                    // 라인 텍스트 가져오기
-                                    String lineText = finalContent.substring(lineStartOffset, lineEndOffset);
-                                    String[] words = lineText.split(" ");
-
-                                    int wordStart = lineStartOffset;
-                                    for (String word : words) {
-                                        int wordEnd = wordStart + word.length();
-
-                                        // 각 단어에 CustomSpan 적용하여 테두리만 표시
-                                        spannableString.setSpan(
-                                                new CustomSpan(Color.BLACK, 50), // 테두리 색상 지정
-                                                wordStart,
-                                                wordEnd,
-                                                Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
-                                        );
-
-                                        // 다음 단어의 시작 위치로 이동
-                                        wordStart = wordEnd + 1; // 단어 간 공백 고려
-
-                                        // 좌표와 함께 로그 출력
-                                        Log.d("LineInfo", "단어: " + word + " (x: " + x + ", y: " + y + ")");
-                                    }
-                                }
-
-                                // 스타일 적용된 SpannableString을 TextView에 설정
-                                textView.setText(spannableString);
-                            }
-                        });
                     });
+                });
 
-                } catch (IOException e) {
-                    e.printStackTrace();
-                    runOnUiThread(() -> textView.setText("파일 읽기 오류 발생!"));
-                }
-
+            } catch (IOException e) {
+                e.printStackTrace();
+                runOnUiThread(() -> textView.setText("파일 읽기 오류 발생!"));
             } catch (Exception e) {
                 e.printStackTrace();
                 runOnUiThread(() -> textView.setText("파일 열기 오류 발생!"));
@@ -313,4 +306,3 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 }
-
