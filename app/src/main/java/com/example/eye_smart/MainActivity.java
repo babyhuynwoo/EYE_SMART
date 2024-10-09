@@ -2,16 +2,10 @@ package com.example.eye_smart;
 
 import android.content.Intent;
 import android.content.res.Configuration;
-import android.graphics.Color;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
-import android.text.Layout;
-import android.text.Spannable;
-import android.text.SpannableString;
-import android.text.StaticLayout;
 import android.text.TextPaint;
-import android.util.Log;
 import android.view.View;
 import android.view.WindowInsets;
 import android.view.WindowInsetsController;
@@ -24,17 +18,18 @@ import androidx.appcompat.widget.Toolbar;
 
 import java.io.BufferedReader;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
+
+import android.util.Log;
 
 public class MainActivity extends AppCompatActivity {
 
     private static final int LINES_PER_PAGE_DEFAULT = 10; // 기본 페이지 당 표시할 라인 수
 
     private TextView textView;
+    private int textViewWidth;
     private int currentPage = 0;
     private Uri fileUri;
     private FilePicker filePicker;
@@ -61,7 +56,7 @@ public class MainActivity extends AppCompatActivity {
         Button buttonNextPage = findViewById(R.id.button_next_page);
 
         // 줄 간격 설정
-        float lineSpacing = 3;
+        float lineSpacing = 3f;
         textView.setLineSpacing(0, lineSpacing);
 
         // TextView의 높이를 계산하여 LINES_PER_PAGE를 설정
@@ -120,6 +115,12 @@ public class MainActivity extends AppCompatActivity {
     protected void onResume() {
         super.onResume();
         hideSystemUI(); // 다시 화면이 포커스를 얻었을 때 시스템 UI 숨김 처리
+
+        // TextView의 너비를 미리 계산하여 저장
+        textView.post(() -> {
+            textViewWidth = textView.getWidth() - textView.getPaddingLeft() - textView.getPaddingRight();
+            TextDisplayUtil.calculateMaxLinesPerPage(textView);
+        });
     }
 
     @Override
@@ -131,26 +132,8 @@ public class MainActivity extends AppCompatActivity {
 
     private void calculateLinesPerPage() {
         textView.post(() -> {
-            // 실제 텍스트 뷰 높이와 가용 높이 계산
-            int textViewHeight = textView.getHeight();
-            int availableHeight = textViewHeight - textView.getPaddingTop() - textView.getPaddingBottom();
-
-            if (availableHeight <= 0) {
-                maxLinesPerPage = LINES_PER_PAGE_DEFAULT;
-                return;
-            }
-
-            // 줄 높이 계산
-            float lineHeight = textView.getLineHeight();
-
-            if (lineHeight > 0) {
-                // 가용 높이와 라인 높이를 이용하여 페이지당 표시할 수 있는 최대 라인 수 계산
-                maxLinesPerPage = Math.max(1, (int) Math.floor(availableHeight / lineHeight)); // 최소 1줄은 출력되도록 설정
-            } else {
-                maxLinesPerPage = LINES_PER_PAGE_DEFAULT;
-            }
-
-            // 페이지 계산 후 표시
+            maxLinesPerPage = TextDisplayUtil.calculateMaxLinesPerPage(textView);
+            Log.d("MainActivity", "계산된 maxLinesPerPage: " + maxLinesPerPage);
             displayPage(currentPage);
         });
     }
@@ -163,14 +146,16 @@ public class MainActivity extends AppCompatActivity {
                     return;
                 }
 
+                // 파일 읽기 시도
                 BufferedReader reader = fileLoader.getBufferedReader();
 
                 int currentPage = 0;
                 String line;
-                List<String> pageLines = new ArrayList<>();
                 StringBuilder pageContent = new StringBuilder();
                 TextPaint textPaint = textView.getPaint();
-                int width = textView.getWidth() - textView.getPaddingLeft() - textView.getPaddingRight();
+                int width = textViewWidth; // 미리 계산된 너비 사용
+
+                int totalDisplayLines = 0; // 현재 페이지의 총 화면 라인 수
 
                 while ((line = reader.readLine()) != null) {
                     line = line.trim();
@@ -178,38 +163,25 @@ public class MainActivity extends AppCompatActivity {
                         continue;
                     }
 
-                    // 라인을 페이지에 추가
-                    pageLines.add(line);
-                    pageContent.append(line).append("\n");
+                    // 개별 라인의 화면 라인 수 계산
+                    int lineDisplayLines = TextDisplayUtil.getDisplayLineCountForLine(line, textPaint, width, textView);
 
-                    // 현재까지의 텍스트로 생성되는 화면 라인 수 계산
-                    int displayLines = getDisplayLineCount(pageContent.toString(), textPaint, width);
-
-                    if (displayLines > maxLinesPerPage) {
-                        if (pageLines.size() == 1) {
-                            // 한 라인 자체가 페이지를 초과하는 경우, 해당 라인을 포함시킴
-                            if (currentPage == pageNumber) {
-                                // 현재 페이지이므로 그대로 표시
-                                break;
-                            } else {
-                                // 다음 페이지로 이동
-                                currentPage++;
-                                pageLines.clear();
-                                pageContent.setLength(0);
-                            }
+                    if (totalDisplayLines + lineDisplayLines > maxLinesPerPage) {
+                        // 페이지 크기를 초과한 경우
+                        if (currentPage == pageNumber) {
+                            // 현재 페이지이면 페이지 내용을 표시
+                            break;
                         } else {
-                            // 라인을 제거하지 않고 바로 다음 페이지로 이동
-                            if (currentPage == pageNumber) {
-                                // 현재 페이지이면 표시
-                                break;
-                            } else {
-                                // 다음 페이지로 이동
-                                currentPage++;
-                                pageLines.clear();
-                                pageContent.setLength(0);
-                            }
+                            // 다음 페이지로 이동
+                            currentPage++;
+                            totalDisplayLines = 0; // 새로운 페이지의 라인 수 초기화
+                            pageContent.setLength(0); // 페이지 내용 초기화
                         }
                     }
+
+                    // 페이지 내용에 라인 추가
+                    pageContent.append(line).append("\n");
+                    totalDisplayLines += lineDisplayLines; // 현재 페이지의 총 화면 라인 수 업데이트
                 }
 
                 reader.close();
@@ -223,73 +195,21 @@ public class MainActivity extends AppCompatActivity {
                 String finalContent = pageContent.toString();
 
                 runOnUiThread(() -> {
-                    // 텍스트를 SpannableString으로 변환하여 스타일 적용
-                    SpannableString spannableString = new SpannableString(finalContent);
-
-                    textView.setText(finalContent);
-
-                    // 각 라인의 좌표를 가져오기 위해 레이아웃이 준비된 후 실행
-                    textView.post(() -> {
-                        Layout layout = textView.getLayout();
-                        if (layout != null) {
-                            int lineCount = layout.getLineCount();
-                            for (int i = 0; i < lineCount; i++) {
-                                int lineStartOffset = layout.getLineStart(i);
-                                int lineEndOffset = layout.getLineEnd(i);
-
-                                // 각 라인의 (x, y) 좌표 가져오기
-                                float x = layout.getLineLeft(i) + textView.getPaddingLeft();
-                                float y = layout.getLineBaseline(i) + textView.getPaddingTop();
-
-                                // 라인 텍스트 가져오기
-                                String lineText = finalContent.substring(lineStartOffset, lineEndOffset);
-                                String[] words = lineText.split(" ");
-
-                                int wordStart = lineStartOffset;
-                                for (String word : words) {
-                                    int wordEnd = wordStart + word.length();
-
-                                    // 각 단어에 CustomSpan 적용하여 테두리만 표시
-                                    spannableString.setSpan(
-                                            new CustomSpan(Color.BLACK, 50), // 테두리 색상 지정
-                                            wordStart,
-                                            wordEnd,
-                                            Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
-                                    );
-
-                                    // 다음 단어의 시작 위치로 이동
-                                    wordStart = wordEnd + 1; // 단어 간 공백 고려
-
-                                    // 좌표와 함께 로그 출력
-                                    Log.d("LineInfo", "단어: " + word + " (x: " + x + ", y: " + y + ")");
-                                }
-                            }
-
-                            // 스타일 적용된 SpannableString을 TextView에 설정
-                            textView.setText(spannableString);
-                        }
-                    });
+                    TextDisplayUtil.styleAndDisplayText(textView, finalContent);
                 });
 
             } catch (IOException e) {
+                // 파일 읽기 오류에 대한 예외 처리 및 로그 출력
+                Log.e("MainActivity", "파일 읽기 오류 발생: " + e.getMessage());
                 e.printStackTrace();
                 runOnUiThread(() -> textView.setText("파일 읽기 오류 발생!"));
             } catch (Exception e) {
+                // 기타 예외 처리 및 로그 출력
+                Log.e("MainActivity", "파일 열기 오류 발생: " + e.getMessage());
                 e.printStackTrace();
                 runOnUiThread(() -> textView.setText("파일 열기 오류 발생!"));
             }
         }).start();
-    }
-
-    private int getDisplayLineCount(String text, TextPaint textPaint, int width) {
-        StaticLayout staticLayout;
-        staticLayout = StaticLayout.Builder.obtain(text, 0, text.length(), textPaint, width)
-                .setAlignment(Layout.Alignment.ALIGN_NORMAL)
-                .setLineSpacing(textView.getLineSpacingExtra(), textView.getLineSpacingMultiplier())
-                .setIncludePad(textView.getIncludeFontPadding())
-                .build();
-
-        return staticLayout.getLineCount();
     }
 
     private void loadNextPage() {
