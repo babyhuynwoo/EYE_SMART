@@ -1,4 +1,4 @@
-package com.example.eye_smart;
+package com.example.eye_smart.file_utils;
 
 import android.content.Context;
 import android.net.Uri;
@@ -9,6 +9,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 
 public class FileLoader {
+
     private final Context context;
     private final Uri fileUri;
 
@@ -19,9 +20,8 @@ public class FileLoader {
 
     public BufferedReader getBufferedReader() throws IOException {
         InputStream inputStream = context.getContentResolver().openInputStream(fileUri);
-        if (inputStream == null) {
-            throw new IOException("파일을 열 수 없습니다.");
-        }
+        if (inputStream == null) throw new IOException("파일을 열 수 없습니다.");
         return new BufferedReader(new InputStreamReader(inputStream));
     }
 }
+
