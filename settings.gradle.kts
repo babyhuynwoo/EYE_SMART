@@ -16,6 +16,9 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
+        maven {
+            url = uri("https://seeso.jfrog.io/artifactory/visualcamp-eyedid-sdk-android-release")
+        }
     }
 }
 
