@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <declare-styleable name="CalibrationView">
+        <attr name="pointColor" format="color" />
+        <attr name="outerPointColor" format="color" />
+        <attr name="pointRadius" format="dimension" />
+        <attr name="outerPointRadius" format="dimension" />
+    </declare-styleable>
+</resources>

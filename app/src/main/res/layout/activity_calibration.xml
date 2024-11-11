@@ -1,27 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/activity_calibration"
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/main"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    tools:context=".MainActivity">
 
     <com.example.eye_smart.gaze_utils.CalibrationView
         android:id="@+id/view_calibration"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:visibility="visible" />
+        android:visibility="invisible"/>
 
-    <TextView
-        android:id="@+id/countdown_text_view"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="center"
-        android:gravity="center"
-        android:text="3"
-        android:textColor="@android:color/black"
-        android:textSize="48sp"
-        android:visibility="visible" />
+    <com.example.eye_smart.gaze_utils.GazePoint
+        android:id="@+id/view_point"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
 
-</FrameLayout>
-
-
-
+</androidx.constraintlayout.widget.ConstraintLayout>
