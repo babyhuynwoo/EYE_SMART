@@ -19,6 +19,7 @@ import camp.visual.eyedid.gazetracker.callback.CalibrationCallback;
 import camp.visual.eyedid.gazetracker.callback.InitializationCallback;
 import camp.visual.eyedid.gazetracker.callback.StatusCallback;
 import camp.visual.eyedid.gazetracker.callback.TrackingCallback;
+import camp.visual.eyedid.gazetracker.constant.AccuracyCriteria;
 import camp.visual.eyedid.gazetracker.constant.CalibrationModeType;
 import camp.visual.eyedid.gazetracker.constant.StatusErrorType;
 import camp.visual.eyedid.gazetracker.metrics.state.TrackingState;
@@ -142,7 +143,7 @@ public class CalibrationActivity extends AppCompatActivity {
         GazeTracker gazeTracker = GazeTrackerManager.getInstance().getGazeTracker();
         if (gazeTracker == null) return;
 
-        boolean calibrationStarted = gazeTracker.startCalibration(CalibrationModeType.DEFAULT);
+        boolean calibrationStarted = gazeTracker.startCalibration(CalibrationModeType.DEFAULT, AccuracyCriteria.HIGH);
         if (calibrationStarted) {
             isInitialCalibrationPoint = true;
             runOnUiThread(() -> {

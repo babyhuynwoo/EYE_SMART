@@ -1,35 +1,39 @@
 package com.example.eye_smart.gaze_utils;
 
+import android.animation.ValueAnimator;
 import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Color;
+import android.graphics.LinearGradient;
 import android.graphics.Paint;
+import android.graphics.Shader;
+import android.graphics.Typeface;
 import android.util.AttributeSet;
 import android.view.View;
 
 import android.text.TextPaint;
 import android.view.ViewGroup;
+import android.view.animation.DecelerateInterpolator;
 
 public class CalibrationView extends ViewGroup {
 
-    private static final int DEFAULT_BACKGROUND_COLOR = Color.rgb(0x64, 0x5E, 0x5E);
     private static final int DEFAULT_TEXT_COLOR = Color.WHITE;
-    private static final float DEFAULT_TEXT_SIZE_SP = 16f;
+    private static final float DEFAULT_TEXT_SIZE_SP = 24f;
 
+    // 시선 보정 점의 색상 배열
     private final int[] calibrationPointColors = {
-            Color.parseColor("#EF5350"), // Red
-            Color.parseColor("#AB47BC"), // Purple
-            Color.parseColor("#FFA726"), // Orange
-            Color.parseColor("#42A5F5"), // Blue
-            Color.parseColor("#66BB6A"), // Green
-            Color.parseColor("#CA9A00"), // Brown
-            Color.parseColor("#FFFD00")  // Yellow
+            Color.parseColor("#EF5350"), // 빨강색
+            Color.parseColor("#AB47BC"), // 보라색
+            Color.parseColor("#FFA726"), // 주황색
+            Color.parseColor("#42A5F5"), // 파랑색
+            Color.parseColor("#66BB6A"), // 초록색
+            Color.parseColor("#CA9A00"), // 갈색
+            Color.parseColor("#FFFD00")  // 노란색
     };
 
     private int currentColorIndex = 0;
     private Paint backgroundPaint;
     private TextPaint messagePaint;
-    private String instructionMessage = "Please stare at this point.";
     private boolean isMessageVisible = true;
     private CalibrationDot calibrationDot;
 
@@ -48,57 +52,86 @@ public class CalibrationView extends ViewGroup {
         initialize();
     }
 
+    // 초기 설정
     private void initialize() {
-        backgroundPaint = new Paint();
-        backgroundPaint.setStyle(Paint.Style.FILL);
-        backgroundPaint.setColor(DEFAULT_BACKGROUND_COLOR);
-
-        messagePaint = new TextPaint(Paint.ANTI_ALIAS_FLAG);
-        messagePaint.setColor(DEFAULT_TEXT_COLOR);
-        messagePaint.setTextAlign(Paint.Align.CENTER);
-        messagePaint.setTextSize(convertSpToPx(DEFAULT_TEXT_SIZE_SP));
-
-        calibrationDot = new CalibrationDot(getContext());
-        addView(calibrationDot);
-
+        setupBackgroundPaint();
+        setupMessagePaint();
+        setupCalibrationDot();
         setWillNotDraw(false);
     }
 
-    private float convertSpToPx(float sp) {
-        return sp * getResources().getDisplayMetrics().scaledDensity;
+    // 배경 페인트 설정
+    private void setupBackgroundPaint() {
+        backgroundPaint = new Paint();
+        Shader gradient = new LinearGradient(
+                0, 0, 0, getHeight(),
+                Color.parseColor("#FFEB3B"), // 밝은 노란색
+                Color.parseColor("#FF9800"), // 주황색
+                Shader.TileMode.CLAMP
+        );
+        backgroundPaint.setShader(gradient);
     }
 
+    // 메시지 페인트 설정
+    private void setupMessagePaint() {
+        messagePaint = new TextPaint(Paint.ANTI_ALIAS_FLAG);
+        messagePaint.setColor(DEFAULT_TEXT_COLOR);
+        messagePaint.setTextAlign(Paint.Align.CENTER);
+        messagePaint.setTextSize(dpToPx()); // 텍스트 크기 설정
+        messagePaint.setTypeface(Typeface.create(Typeface.SANS_SERIF, Typeface.BOLD_ITALIC));
+        messagePaint.setShadowLayer(10, 0, 0, Color.BLACK); // 텍스트 그림자 추가
+    }
+
+    // 보정 점 설정
+    private void setupCalibrationDot() {
+        calibrationDot = new CalibrationDot(getContext());
+        addView(calibrationDot);
+    }
+
+    // SP 단위를 픽셀로 변환
+    private float dpToPx() {
+        return CalibrationView.DEFAULT_TEXT_SIZE_SP * getResources().getDisplayMetrics().scaledDensity;
+    }
+
+    // 보정 뷰 오프셋 설정
     public void setOffset(float x, float y) {
         offsetX = x;
         offsetY = y;
         requestLayout();
     }
 
+    // 메시지 가시성 설정
     public void setMessageVisibility(boolean isVisible) {
         isMessageVisible = isVisible;
     }
 
+    // 배경 색상 설정
     @Override
     public void setBackgroundColor(int color) {
         backgroundPaint.setColor(color);
         invalidate();
     }
 
+    // 보정 점 색상 변경
     public void moveToNextDotColor() {
         currentColorIndex = (currentColorIndex + 1) % calibrationPointColors.length;
         calibrationDot.setDotColor(calibrationPointColors[currentColorIndex]);
+        calibrationDot.animateDot(300); // 애니메이션 설정
         invalidate();
     }
 
+    // 보정 점 위치 설정
     public void setDotPosition(float x, float y) {
         calibrationDot.setPosition(x - offsetX, y - offsetY);
         requestLayout();
     }
 
-    public void setDotAnimationScale(float scale) {
-        calibrationDot.setAnimationScale(scale);
+    // 보정 점 애니메이션 스케일 설정
+    public void setDotAnimationScale(float progress) {
+        calibrationDot.setProgress(progress);
     }
 
+    // 측정 메서드 재정의
     @Override
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
         measureChild(calibrationDot, widthMeasureSpec, heightMeasureSpec);
@@ -107,6 +140,7 @@ public class CalibrationView extends ViewGroup {
         setMeasuredDimension(width, height);
     }
 
+    // 레이아웃 설정
     @Override
     protected void onLayout(boolean changed, int l, int t, int r, int b) {
         float centerX = calibrationDot.getPositionX();
@@ -121,16 +155,19 @@ public class CalibrationView extends ViewGroup {
         calibrationDot.layout(left, top, right, bottom);
     }
 
+    // 배경과 텍스트 그리기
     @Override
     protected void onDraw(Canvas canvas) {
         canvas.drawRect(0, 0, getWidth(), getHeight(), backgroundPaint);
-        if (isMessageVisible && instructionMessage != null && !instructionMessage.isEmpty()) {
+        if (isMessageVisible) {
+            String instructionMessage = "잠시 뒤 나오는 점들을 응시해주세요.";
             float x = getWidth() / 2f;
             float y = getHeight() / 2f - (messagePaint.descent() + messagePaint.ascent()) / 2f;
             canvas.drawText(instructionMessage, x, y, messagePaint);
         }
     }
 
+    // 보정 점 클래스
     private static class CalibrationDot extends View {
         private static final float DEFAULT_RADIUS_DP = 30f;
 
@@ -139,24 +176,35 @@ public class CalibrationView extends ViewGroup {
 
         private float positionX = 0f, positionY = 0f;
         private float radius;
-        private float animationScale = 0f;
+        private float progress = 0f;
 
         public CalibrationDot(Context context) {
             super(context);
             initialize();
         }
 
+        // 초기화 설정
         private void initialize() {
-            radius = convertDpToPx(DEFAULT_RADIUS_DP);
-
-            outerPaint.setStyle(Paint.Style.FILL);
-            innerPaint.setStyle(Paint.Style.FILL);
+            radius = dpToPx();
+            outerPaint.setStyle(Paint.Style.STROKE); // 외곽선 스타일
+            outerPaint.setStrokeWidth(1f);           // 외곽선 두께
+            outerPaint.setColor(Color.WHITE);  // 외곽선 색상 설정
+            outerPaint.setStyle(Paint.Style.FILL);   // 외부 페인트 스타일
+            innerPaint.setStyle(Paint.Style.FILL);   // 내부 페인트 스타일
         }
 
-        private float convertDpToPx(float dp) {
-            return dp * getResources().getDisplayMetrics().density;
+        // DP 단위를 픽셀로 변환
+        private float dpToPx() {
+            return CalibrationDot.DEFAULT_RADIUS_DP * getResources().getDisplayMetrics().density;
         }
 
+        // 애니메이션 진행 정도 설정
+        public void setProgress(float progress) {
+            this.progress = progress;
+            invalidate();
+        }
+
+        // 위치 설정
         public void setPosition(float x, float y) {
             positionX = x;
             positionY = y;
@@ -171,14 +219,9 @@ public class CalibrationView extends ViewGroup {
             return positionY;
         }
 
+        // 점의 색상 설정
         public void setDotColor(int color) {
-            outerPaint.setColor(Color.argb(100, Color.red(color), Color.green(color), Color.blue(color)));
             innerPaint.setColor(color);
-            invalidate();
-        }
-
-        public void setAnimationScale(float scale) {
-            animationScale = scale;
             invalidate();
         }
 
@@ -186,18 +229,38 @@ public class CalibrationView extends ViewGroup {
             return radius;
         }
 
+        // 점 애니메이션 실행
+        public void animateDot(long duration) {
+            ValueAnimator animator = ValueAnimator.ofFloat(0, 360);
+            animator.setDuration(duration);
+            animator.setInterpolator(new DecelerateInterpolator());
+            animator.addUpdateListener(animation -> {
+                animation.getAnimatedValue();
+                invalidate();
+            });
+            animator.start();
+        }
+
+        // 측정 메서드 재정의
         @Override
         protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
             int size = (int) (2 * radius);
             setMeasuredDimension(size, size);
         }
 
+        // 점 그리기
         @Override
         protected void onDraw(Canvas canvas) {
-            float animatedRadius = radius - ((radius / 2) * animationScale);
             float center = getWidth() / 2f;
-            canvas.drawCircle(center, center, radius, outerPaint);
-            canvas.drawCircle(center, center, animatedRadius, innerPaint);
+
+            canvas.drawCircle(center, center, radius, outerPaint); // 외곽선 원 그리기
+
+            // 점의 채워지는 효과를 위해 클리핑 영역 설정
+            float top = center + radius * (1 - (progress * 2));
+            canvas.save();
+            canvas.clipRect(center - radius, top, center + radius, center + radius);
+            canvas.drawCircle(center, center, radius, innerPaint); // 내부 원 그리기
+            canvas.restore(); // 클리핑 해제
         }
     }
 }
