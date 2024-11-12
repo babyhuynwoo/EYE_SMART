@@ -4,16 +4,17 @@ import android.animation.ValueAnimator;
 import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Color;
-import android.graphics.LinearGradient;
 import android.graphics.Paint;
-import android.graphics.Shader;
 import android.graphics.Typeface;
+import android.graphics.drawable.Drawable;
 import android.util.AttributeSet;
 import android.view.View;
 
 import android.text.TextPaint;
 import android.view.ViewGroup;
 import android.view.animation.DecelerateInterpolator;
+
+import androidx.annotation.NonNull;
 
 public class CalibrationView extends ViewGroup {
 
@@ -24,18 +25,16 @@ public class CalibrationView extends ViewGroup {
     private final int[] calibrationPointColors = {
             Color.parseColor("#EF5350"), // 빨강색
             Color.parseColor("#AB47BC"), // 보라색
-            Color.parseColor("#FFA726"), // 주황색
             Color.parseColor("#42A5F5"), // 파랑색
             Color.parseColor("#66BB6A"), // 초록색
             Color.parseColor("#CA9A00"), // 갈색
-            Color.parseColor("#FFFD00")  // 노란색
     };
 
     private int currentColorIndex = 0;
-    private Paint backgroundPaint;
     private TextPaint messagePaint;
     private boolean isMessageVisible = true;
     private CalibrationDot calibrationDot;
+    private Drawable backgroundDrawable;
 
     private float offsetX = 0, offsetY = 0;
 
@@ -54,22 +53,9 @@ public class CalibrationView extends ViewGroup {
 
     // 초기 설정
     private void initialize() {
-        setupBackgroundPaint();
         setupMessagePaint();
         setupCalibrationDot();
         setWillNotDraw(false);
-    }
-
-    // 배경 페인트 설정
-    private void setupBackgroundPaint() {
-        backgroundPaint = new Paint();
-        Shader gradient = new LinearGradient(
-                0, 0, 0, getHeight(),
-                Color.parseColor("#FFEB3B"), // 밝은 노란색
-                Color.parseColor("#FF9800"), // 주황색
-                Shader.TileMode.CLAMP
-        );
-        backgroundPaint.setShader(gradient);
     }
 
     // 메시지 페인트 설정
@@ -103,13 +89,6 @@ public class CalibrationView extends ViewGroup {
     // 메시지 가시성 설정
     public void setMessageVisibility(boolean isVisible) {
         isMessageVisible = isVisible;
-    }
-
-    // 배경 색상 설정
-    @Override
-    public void setBackgroundColor(int color) {
-        backgroundPaint.setColor(color);
-        invalidate();
     }
 
     // 보정 점 색상 변경
@@ -157,8 +136,14 @@ public class CalibrationView extends ViewGroup {
 
     // 배경과 텍스트 그리기
     @Override
-    protected void onDraw(Canvas canvas) {
-        canvas.drawRect(0, 0, getWidth(), getHeight(), backgroundPaint);
+    protected void onDraw(@NonNull Canvas canvas) {
+        // 배경을 먼저 그리기
+        if (backgroundDrawable != null) {
+            backgroundDrawable.setBounds(0, 0, getWidth(), getHeight());
+            backgroundDrawable.draw(canvas);
+        }
+
+        // 기존 메시지 및 다른 요소 그리기
         if (isMessageVisible) {
             String instructionMessage = "잠시 뒤 나오는 점들을 응시해주세요.";
             float x = getWidth() / 2f;
@@ -166,7 +151,6 @@ public class CalibrationView extends ViewGroup {
             canvas.drawText(instructionMessage, x, y, messagePaint);
         }
     }
-
     // 보정 점 클래스
     private static class CalibrationDot extends View {
         private static final float DEFAULT_RADIUS_DP = 30f;

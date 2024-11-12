@@ -3,13 +3,16 @@ package com.example.eye_smart;
 import static com.example.eye_smart.gaze_utils.OptimizeUtils.showToast;
 
 import android.content.Intent;
+import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.view.View;
+import android.widget.ProgressBar;
 
 import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.ContextCompat;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
@@ -34,6 +37,7 @@ public class CalibrationActivity extends AppCompatActivity {
 
     private GazePoint gazePointView;
     private CalibrationView calibrationView;
+    private ProgressBar loadingSpinner;
     private final ViewLayoutChecker layoutChecker = new ViewLayoutChecker();
     private Handler backgroundHandler;
     private final HandlerThread backgroundThread = new HandlerThread("CalibrationBackground");
@@ -90,8 +94,10 @@ public class CalibrationActivity extends AppCompatActivity {
     };
 
     private final InitializationCallback initializationCallback = (gazeTracker, error) -> {
+        runOnUiThread(() -> loadingSpinner.setVisibility(View.VISIBLE)); // 로딩 표시
         if (gazeTracker == null) {
             showToast(this, "Initialization Error: " + error.name(), true);
+            runOnUiThread(() -> loadingSpinner.setVisibility(View.GONE)); // 초기화 실패 시 로딩 숨기기
         } else {
             GazeTrackerManager.getInstance().setGazeTracker(gazeTracker);
             gazeTracker.setTrackingCallback(trackingCallback);
@@ -117,6 +123,12 @@ public class CalibrationActivity extends AppCompatActivity {
 
         initializeViews();
         initializeGazeTracker();
+
+        Drawable gradientBackground = ContextCompat.getDrawable(this, R.drawable.gradient_background);
+        if (gradientBackground != null) {
+            calibrationView.setBackgroundDrawable(gradientBackground);
+        }
+
         backgroundThread.start();
         backgroundHandler = new Handler(backgroundThread.getLooper());
     }
@@ -124,6 +136,7 @@ public class CalibrationActivity extends AppCompatActivity {
     private void initializeViews() {
         calibrationView = findViewById(R.id.view_calibration);
         gazePointView = findViewById(R.id.view_point);
+        loadingSpinner = findViewById(R.id.progress_bar); // 로딩 ProgressBar 추가
 
         gazePointView.updateGazePoint(-999, -999);
         layoutChecker.setOverlayView(gazePointView, (x, y) -> {
@@ -136,6 +149,8 @@ public class CalibrationActivity extends AppCompatActivity {
         String EYEDID_SDK_LICENSE = BuildConfig.EYEDID_API_KEY;
         GazeInitializer gazeInitializer = new GazeInitializer(this, EYEDID_SDK_LICENSE, message -> showToast(this, message, true));
         gazeInitializer.setInitializationCallback(initializationCallback);
+
+        runOnUiThread(() -> loadingSpinner.setVisibility(View.VISIBLE)); // 초기화 과정 중 로딩 표시
         gazeInitializer.initialize();
     }
 
@@ -150,9 +165,12 @@ public class CalibrationActivity extends AppCompatActivity {
                 calibrationView.setDotPosition(-9999, -9999);
                 calibrationView.setMessageVisibility(true);
                 gazePointView.setVisibility(View.INVISIBLE);
+
+                loadingSpinner.setVisibility(View.GONE); // 캘리브레이션 시작 시 로딩 숨기기
             });
         } else {
             showToast(this, "Calibration Start Failed", false);
+            runOnUiThread(() -> loadingSpinner.setVisibility(View.GONE));
         }
     }
 
