@@ -132,4 +132,3 @@ public class GazeInitializer implements CheckCamera.PermissionCallback {
         checkCamera.onRequestPermissionsResult(requestCode, permissions, grantResults);
     }
 }
-

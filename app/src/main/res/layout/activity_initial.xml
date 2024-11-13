@@ -7,7 +7,7 @@
     android:layout_height="match_parent"
     tools:context=".InitialActivity">
 
-    <com.example.eye_smart.gaze_utils.GazePointView
+    <com.example.eye_smart.gaze_utils.GazePoint
         android:id="@+id/gazePointView"
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
