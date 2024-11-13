@@ -58,7 +58,7 @@ public class BookSelectionActivity extends AppCompatActivity {
             }
         }, options);
     }
-
+//test
     private void setupGazeTracking() {
         gazeTracker.setTrackingCallback(trackingCallback);
         GazeTrackerManager.getInstance().startTracking();
