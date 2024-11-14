@@ -29,7 +29,6 @@ public class BookSelectionActivity extends AppCompatActivity {
     private GazePoint gazePoint;
     private final Handler progressHandler = new Handler();
     private Runnable progressRunnable;
-    // private final boolean isGazeOnButton = false; // 버튼 위에 gaze 여부
     private ImageButton lastGazedButton = null; // 마지막으로 gaze한 버튼
     private ProgressBar currentProgressBar = null; // 현재 진행 중인 ProgressBar
 
@@ -53,7 +52,7 @@ public class BookSelectionActivity extends AppCompatActivity {
         // GazePointView 연결
         gazePoint = findViewById(R.id.gazePointView);
 
-        // 버튼 초기화 (여기서 findViewById 호출)
+        // 버튼 초기화
         book1 = findViewById(R.id.book1);
         book2 = findViewById(R.id.book2);
         book3 = findViewById(R.id.book3);
@@ -148,7 +147,6 @@ public class BookSelectionActivity extends AppCompatActivity {
         if (currentProgressBar == null) return;
 
         currentProgressBar.setVisibility(View.VISIBLE); // ProgressBar 보이기
-        // currentProgressBar.setProgress(0); // 프로그레스 초기화
 
         progressRunnable = new Runnable() {
             @Override
@@ -169,17 +167,38 @@ public class BookSelectionActivity extends AppCompatActivity {
 
                     // 파일 URL을 로그로 출력
                     Log.d("BookSelectionActivity", "Selected file URL: " + fileUrl);
+                    currentProgressBar.setProgress(0);
 
+                    // 시선 추적과 핸들러 중지 및 버튼 비활성화
+                    stopGazeTrackingAndDisableButtons();
+
+                    // 인텐트 시작
                     Intent intent = new Intent(BookSelectionActivity.this, MainActivity.class);
                     intent.putExtra("fileUrl", fileUrl); // 파일 URL을 인텐트로 전달
                     startActivity(intent);
-
-                    currentProgressBar.setVisibility(View.GONE); // 완료 후 ProgressBar 숨김
                 }
             }
         };
-
         progressHandler.post(progressRunnable); // ProgressBar 시작
+    }
+
+    private void stopGazeTrackingAndDisableButtons() {
+        // 시선 추적 중지
+        if (gazeTracker != null) {
+            gazeTracker.stopTracking();
+        }
+        // 핸들러 콜백 제거하여 진행 중지
+        progressHandler.removeCallbacks(progressRunnable);
+
+        // ProgressBar 숨김
+        if (currentProgressBar != null) {
+            currentProgressBar.setVisibility(View.GONE);
+        }
+
+        // 버튼 비활성화
+        book1.setEnabled(false);
+        book2.setEnabled(false);
+        book3.setEnabled(false);
     }
 
     private void pauseProgressBar() {
