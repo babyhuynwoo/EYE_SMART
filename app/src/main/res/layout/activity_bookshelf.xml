@@ -9,9 +9,9 @@
     tools:context=".BookSelectionActivity">
 
     <com.example.eye_smart.gaze_utils.GazePoint
-        android:id="@+id/gazePointView"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent" />
+    android:id="@+id/gazePointView"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent" />
 
     <ImageButton
         android:id="@+id/book3"

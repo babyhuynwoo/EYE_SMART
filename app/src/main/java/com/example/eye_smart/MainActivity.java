@@ -1,5 +1,7 @@
 package com.example.eye_smart;
 
+import static com.example.eye_smart.gaze_utils.OptimizeUtils.showToast;
+
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.Manifest;
@@ -20,15 +22,23 @@ import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
 import com.example.eye_smart.file_utils.FileLoader;
+import com.example.eye_smart.gaze_utils.GazePoint;
+import com.example.eye_smart.gaze_utils.GazeTrackerManager;
 import com.example.eye_smart.page_view_utils.PageDisplayer;
 import com.example.eye_smart.dict_utils.ServerCommunicator;
 import com.example.eye_smart.dict_utils.JsonParser;
+
+import camp.visual.eyedid.gazetracker.GazeTracker;
+import camp.visual.eyedid.gazetracker.callback.TrackingCallback;
+import camp.visual.eyedid.gazetracker.constant.GazeTrackerOptions;
 
 public class MainActivity extends AppCompatActivity {
     private static final int PERMISSION_REQUEST_CODE = 1;
     private static final int MANAGE_STORAGE_PERMISSION_REQUEST_CODE = 2;
     private int currentPage = 0;
 
+    private GazeTracker gazeTracker;
+    private GazePoint gazePoint;
     private TextView textView;
     private FileLoader fileLoader;
     private PageDisplayer pageDisplayer;
@@ -42,6 +52,17 @@ public class MainActivity extends AppCompatActivity {
         // UI 초기화
         initUI();
 
+        // GazePointView 연결
+        gazePoint = findViewById(R.id.gazePointView);
+        // GazeTracker 가져오기
+        gazeTracker = GazeTrackerManager.getInstance().getGazeTracker();
+
+        if (gazeTracker != null) {
+            setupGazeTracking();
+        } else {
+            initTracker();
+        }
+
         // PageDisplayer와 ServerCommunicator 초기화
         pageDisplayer = new PageDisplayer(textView, 3f, 2f);
         serverCommunicator = new ServerCommunicator();
@@ -49,6 +70,38 @@ public class MainActivity extends AppCompatActivity {
         // 권한 요청 및 파일 로드
         requestStoragePermission();
     }
+
+    private void initTracker() {
+        GazeTrackerOptions options = new GazeTrackerOptions.Builder().build();
+        GazeTracker.initGazeTracker(this, BuildConfig.EYEDID_API_KEY, (gazeTracker, error) -> {
+            if (gazeTracker != null) {
+                this.gazeTracker = gazeTracker;
+                GazeTrackerManager.getInstance().setGazeTracker(gazeTracker);
+                setupGazeTracking();
+            } else {
+                showToast(this, "GazeTracker 초기화 실패: " + error.name(), true);
+                finish();
+            }
+        }, options);
+    }
+
+    private void setupGazeTracking() {
+        gazeTracker.setTrackingCallback(trackingCallback);
+        GazeTrackerManager.getInstance().startTracking();
+    }
+
+    private final TrackingCallback trackingCallback = (timestamp, gazeInfo, faceInfo, blinkInfo, userStatusInfo) -> {
+        if (gazeInfo != null) {
+            float gazeX = gazeInfo.x;
+            float gazeY = gazeInfo.y;
+
+            // GazePointView에 시선 위치 업데이트
+            runOnUiThread(() -> {
+                gazePoint.updateGazePoint(gazeX, gazeY);
+                // 버튼이나 다른 UI 요소에 대한 gaze 체크를 추가할 수 있습니다.
+            });
+        }
+    };
 
     private void requestStoragePermission() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
