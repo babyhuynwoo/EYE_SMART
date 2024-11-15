@@ -36,8 +36,8 @@
 
 ## 🧑‍💻 멤버 구성
 - 이휘([0630hwi](https://github.com/0630hwi))
-- 성준서([JunSeo0702](https://github.com/JunSeo0702)
-- 김현우([babyhuynwoo](https://github.com/babyhuynwooi)
-- 박규나([Gyu-me](https://github.com/Gyu-me)
+- 성준서([JunSeo0702](https://github.com/JunSeo0702))
+- 김현우([babyhuynwoo](https://github.com/babyhuynwoo))
+- 박규나([Gyu-me](https://github.com/Gyu-me))
 
  **작성중 ...**
