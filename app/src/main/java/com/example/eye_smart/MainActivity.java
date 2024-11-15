@@ -5,12 +5,15 @@ import static com.example.eye_smart.gaze_utils.OptimizeUtils.showToast;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.Manifest;
+import android.graphics.Color;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.provider.Settings;
 import android.util.Log;
+import android.view.Window;
+import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.TextView;
 
@@ -68,6 +71,11 @@ public class MainActivity extends AppCompatActivity {
 
         // 권한 요청 및 파일 로드
         requestStoragePermission();
+
+        // 상태바 색상 변경
+        Window window = getWindow();
+        window.setStatusBarColor(ContextCompat.getColor(this, R.color.main_color_purple)); // 툴바와 동일한 색상 설정
+
     }
 
     private void initTracker() {
@@ -172,15 +180,23 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void initUI() {
-        Toolbar toolbarTop = findViewById(R.id.toolbar_top);
+        Toolbar toolbarTop = findViewById(R.id.toolbar);
         setSupportActionBar(toolbarTop);
 
         textView = findViewById(R.id.textView);
         Button buttonPrevPage = findViewById(R.id.button_prev_page);
         Button buttonNextPage = findViewById(R.id.button_next_page);
+        Button backBookSelection = findViewById(R.id.backBookSelection);
 
         buttonPrevPage.setOnClickListener(v -> loadPreviousPage());
         buttonNextPage.setOnClickListener(v -> loadNextPage());
+
+        // backBookSelection 버튼 클릭 리스너 추가
+        backBookSelection.setOnClickListener(v -> {
+            Intent intent = new Intent(MainActivity.this, BookSelectionActivity.class); // BookSelection으로 이동
+            startActivity(intent);
+            finish(); // 현재 액티비티 종료
+        });
     }
 
     private void loadFileAndDisplay(Uri uri) {

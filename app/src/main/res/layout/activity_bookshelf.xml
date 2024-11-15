@@ -8,55 +8,82 @@
     android:layout_height="match_parent"
     tools:context=".BookSelectionActivity">
 
+    <!-- 상단 Toolbar -->
+
     <com.example.eye_smart.gaze_utils.GazePoint
-    android:id="@+id/gazePointView"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent" />
+        android:id="@+id/gazePointView"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        tools:layout_editor_absoluteX="-16dp"
+        tools:layout_editor_absoluteY="-120dp" />
+
+    <FrameLayout
+        android:id="@+id/frameLayout"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.0"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="0.0">
+
+        <androidx.appcompat.widget.Toolbar
+            android:id="@+id/toolbar"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@color/main_color_purple"
+            android:minHeight="?attr/actionBarSize"
+            android:theme="?attr/actionBarTheme" />
+
+        <Button
+            android:id="@+id/reEyeDetection"
+            android:layout_width="146dp"
+            android:layout_height="46dp"
+
+            android:text="재식별"
+            app:icon="@android:drawable/ic_menu_view" />
+
+    </FrameLayout>
 
     <ImageButton
         android:id="@+id/book3"
         android:layout_width="142.5dp"
         android:layout_height="150dp"
+        android:alpha="0.5"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.492"
         app:layout_constraintStart_toEndOf="@+id/book2"
-        app:layout_constraintTop_toBottomOf="@+id/toolbar_top2"
+        app:layout_constraintTop_toBottomOf="@+id/frameLayout"
         app:layout_constraintVertical_bias="0.086"
-        app:srcCompat="?attr/actionModePasteDrawable"
-        android:alpha="0.5"/>
+        app:srcCompat="?attr/actionModePasteDrawable" />
 
-    <androidx.appcompat.widget.Toolbar
-        android:id="@+id/toolbar_top2"
-        android:layout_width="match_parent"
-        android:layout_height="?attr/actionBarSize"
-        android:background="?attr/colorPrimary"
-        android:theme="?attr/actionBarTheme" />
 
     <ImageButton
         android:id="@+id/book1"
         android:layout_width="142.5dp"
         android:layout_height="150dp"
+        android:alpha="0.5"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toStartOf="@+id/book2"
         app:layout_constraintHorizontal_bias="0.476"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/toolbar_top2"
+        app:layout_constraintTop_toBottomOf="@+id/frameLayout"
         app:layout_constraintVertical_bias="0.086"
-        app:srcCompat="?attr/actionModePasteDrawable"
-        android:alpha="0.5"/>
+        app:srcCompat="?attr/actionModePasteDrawable" />
 
     <ImageButton
         android:id="@+id/book2"
         android:layout_width="142.5dp"
         android:layout_height="150dp"
+        android:alpha="0.5"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/toolbar_top2"
+        app:layout_constraintTop_toBottomOf="@+id/frameLayout"
         app:layout_constraintVertical_bias="0.086"
-        app:srcCompat="?attr/actionModePasteDrawable"
-        android:alpha="0.5"/>
+        app:srcCompat="?attr/actionModePasteDrawable" />
 
     <!-- ProgressBar for Book1 -->
     <ProgressBar
@@ -97,17 +124,6 @@
         android:layout_marginBottom="5dp"
         style="?android:attr/progressBarStyleHorizontal" />
 
-    <Button
-        android:id="@+id/reEyeDetection"
-        android:layout_width="137dp"
-        android:layout_height="65dp"
-        android:text="재식별"
-        app:icon="@android:drawable/ic_menu_view"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.85"
-        app:layout_constraintStart_toStartOf="@+id/toolbar_top2"
-        app:layout_constraintTop_toTopOf="parent" />
-
     <TextView
         android:id="@+id/bookName1"
         android:layout_width="wrap_content"
@@ -116,7 +132,7 @@
         android:text="bookname1"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toStartOf="@+id/bookName2"
-        app:layout_constraintHorizontal_bias="0.446"
+        app:layout_constraintHorizontal_bias="0.347"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/book1"
         app:layout_constraintVertical_bias="0.0" />
@@ -141,7 +157,7 @@
         android:text="bookname3"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.568"
+        app:layout_constraintHorizontal_bias="0.734"
         app:layout_constraintStart_toEndOf="@+id/bookName2"
         app:layout_constraintTop_toBottomOf="@+id/book3"
         app:layout_constraintVertical_bias="0.0" />

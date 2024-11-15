@@ -9,10 +9,12 @@ import android.os.Environment;
 import android.os.Handler;
 import android.util.Log;
 import android.view.View;
+import android.view.Window;
 import android.widget.ImageButton;
 import android.widget.ProgressBar;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.ContextCompat;
 
 import com.example.eye_smart.gaze_utils.GazePoint;
 import com.example.eye_smart.gaze_utils.GazeTrackerManager;
@@ -56,6 +58,11 @@ public class BookSelectionActivity extends AppCompatActivity {
         } else {
             initTracker();
         }
+
+        // 상태바 색상 변경
+        Window window = getWindow();
+        window.setStatusBarColor(ContextCompat.getColor(this, R.color.main_color_purple)); // 툴바와 동일한 색상 설정(메인컬러)
+
     }
 
     private void initializeButtonsAndProgressBars() {
