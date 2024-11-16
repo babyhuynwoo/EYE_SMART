@@ -9,19 +9,15 @@ import android.os.Environment;
 import android.os.Handler;
 import android.util.Log;
 import android.view.View;
-import android.view.Window;
 import android.widget.ImageButton;
 import android.widget.ProgressBar;
 
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.content.ContextCompat;
 
 import com.example.eye_smart.gaze_utils.GazePoint;
 import com.example.eye_smart.gaze_utils.GazeTrackerManager;
 
 import java.io.File;
-import java.util.HashMap;
-import java.util.Map;
 
 import camp.visual.eyedid.gazetracker.GazeTracker;
 import camp.visual.eyedid.gazetracker.callback.TrackingCallback;
@@ -33,12 +29,20 @@ public class BookSelectionActivity extends AppCompatActivity {
     private GazePoint gazePoint;
     private final Handler progressHandler = new Handler();
     private Runnable progressRunnable;
-    private ImageButton lastGazedButton = null;
-    private ProgressBar currentProgressBar = null;
+    private ImageButton lastGazedButton = null; // 마지막으로 gaze한 버튼
+    private ProgressBar currentProgressBar = null; // 현재 진행 중인 ProgressBar
 
-    private final Map<ImageButton, ProgressBar> buttonProgressMap = new HashMap<>();
-    private final Map<ImageButton, String> buttonUrlMap = new HashMap<>();
-    private final Map<ImageButton, Boolean> buttonEnabledMap = new HashMap<>();
+    private ProgressBar progressBarBook1;
+    private ProgressBar progressBarBook2;
+    private ProgressBar progressBarBook3;
+
+    private ImageButton book1;
+    private ImageButton book2;
+    private ImageButton book3;
+
+    private String urlBook1;
+    private String urlBook2;
+    private String urlBook3;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -48,47 +52,33 @@ public class BookSelectionActivity extends AppCompatActivity {
         // GazePointView 연결
         gazePoint = findViewById(R.id.gazePointView);
 
-        // 버튼과 ProgressBar 초기화
-        initializeButtonsAndProgressBars();
+        // 버튼 초기화
+        book1 = findViewById(R.id.book1);
+        book2 = findViewById(R.id.book2);
+        book3 = findViewById(R.id.book3);
+
+        // ProgressBar 초기화
+        progressBarBook1 = findViewById(R.id.progressBarBook1);
+        progressBarBook2 = findViewById(R.id.progressBarBook2);
+        progressBarBook3 = findViewById(R.id.progressBarBook3);
+
+        // 파일 경로 설정
+        File sampleFile1 = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), "sample_1.txt");
+        File sampleFile2 = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), "sample_2.txt");
+        File sampleFile3 = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), "sample_3.txt");
+
+        urlBook1 = Uri.fromFile(sampleFile1).toString();
+        urlBook2 = Uri.fromFile(sampleFile2).toString();
+        urlBook3 = Uri.fromFile(sampleFile3).toString();
 
         // GazeTracker 가져오기
         gazeTracker = GazeTrackerManager.getInstance().getGazeTracker();
+
         if (gazeTracker != null) {
             setupGazeTracking();
         } else {
             initTracker();
         }
-
-        // 상태바 색상 변경
-        Window window = getWindow();
-        window.setStatusBarColor(ContextCompat.getColor(this, R.color.main_color_purple)); // 툴바와 동일한 색상 설정(메인컬러)
-
-    }
-
-    private void initializeButtonsAndProgressBars() {
-        ImageButton book1 = findViewById(R.id.book1);
-        ImageButton book2 = findViewById(R.id.book2);
-        ImageButton book3 = findViewById(R.id.book3);
-
-        ProgressBar progressBarBook1 = findViewById(R.id.progressBarBook1);
-        ProgressBar progressBarBook2 = findViewById(R.id.progressBarBook2);
-        ProgressBar progressBarBook3 = findViewById(R.id.progressBarBook3);
-
-        buttonProgressMap.put(book1, progressBarBook1);
-        buttonProgressMap.put(book2, progressBarBook2);
-        buttonProgressMap.put(book3, progressBarBook3);
-
-        File sampleFile1 = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), "sample_1.txt");
-        File sampleFile2 = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), "sample_2.txt");
-        File sampleFile3 = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), "sample_3.txt");
-
-        buttonUrlMap.put(book1, Uri.fromFile(sampleFile1).toString());
-        buttonUrlMap.put(book2, Uri.fromFile(sampleFile2).toString());
-        buttonUrlMap.put(book3, Uri.fromFile(sampleFile3).toString());
-
-        buttonEnabledMap.put(book1, true);
-        buttonEnabledMap.put(book2, true);
-        buttonEnabledMap.put(book3, true);
     }
 
     private void initTracker() {
@@ -115,38 +105,39 @@ public class BookSelectionActivity extends AppCompatActivity {
             float gazeX = gazeInfo.x;
             float gazeY = gazeInfo.y;
 
+            // GazePointView에 시선 위치 업데이트
             runOnUiThread(() -> {
                 gazePoint.updateGazePoint(gazeX, gazeY);
-                checkGazeOnButtons(gazeX, gazeY);
+                checkGazeOnButtons(gazeX, gazeY); // 버튼 체크
             });
         }
     };
 
     private void checkGazeOnButtons(float gazeX, float gazeY) {
-        for (ImageButton button : buttonProgressMap.keySet()) {
-            checkGazeOnButton(button, gazeX, gazeY);
-        }
+        // 각 버튼에 대해 gaze 체크
+        checkGazeOnButton(book1, gazeX, gazeY, progressBarBook1);
+        checkGazeOnButton(book2, gazeX, gazeY, progressBarBook2);
+        checkGazeOnButton(book3, gazeX, gazeY, progressBarBook3);
     }
 
-    private void checkGazeOnButton(ImageButton button, float gazeX, float gazeY) {
+    private void checkGazeOnButton(ImageButton button, float gazeX, float gazeY, ProgressBar progressBar) {
         int[] location = new int[2];
         button.getLocationOnScreen(location);
         int buttonX = location[0];
         int buttonY = location[1];
 
+        // 버튼 영역 확인
         if (gazeX >= buttonX && gazeX <= buttonX + button.getWidth() &&
                 gazeY >= buttonY && gazeY <= buttonY + button.getHeight()) {
 
-            if (Boolean.FALSE.equals(buttonEnabledMap.get(button))) return;
-
-            if (lastGazedButton != button) {
+            if (lastGazedButton != button) { // 시선이 다른 버튼으로 이동한 경우
                 lastGazedButton = button;
-                currentProgressBar = buttonProgressMap.get(button);
-                startProgressBar(button);
+                currentProgressBar = progressBar;
+                startProgressBar(button); // 새로운 버튼에 대한 ProgressBar 시작
             }
         } else {
-            if (lastGazedButton == button) {
-                pauseProgressBar();
+            if (lastGazedButton == button) { // 버튼에서 gaze가 벗어난 경우
+                pauseProgressBar(); // ProgressBar 멈추기 (초기화하지 않음)
                 lastGazedButton = null;
             }
         }
@@ -155,41 +146,65 @@ public class BookSelectionActivity extends AppCompatActivity {
     private void startProgressBar(final ImageButton button) {
         if (currentProgressBar == null) return;
 
-        currentProgressBar.setVisibility(View.VISIBLE);
+        currentProgressBar.setVisibility(View.VISIBLE); // ProgressBar 보이기
 
         progressRunnable = new Runnable() {
             @Override
             public void run() {
                 int progress = currentProgressBar.getProgress();
                 if (progress < 100) {
-                    currentProgressBar.setProgress(progress + 2);
+                    currentProgressBar.setProgress(progress + 2); // 진행 상태 증가
                     progressHandler.postDelayed(this, 10);
                 } else {
-                    handleButtonSelection(button);
+                    String fileUrl = null;
+                    if (button == book1) {
+                        fileUrl = urlBook1;
+                    } else if (button == book2) {
+                        fileUrl = urlBook2;
+                    } else if (button == book3) {
+                        fileUrl = urlBook3;
+                    }
+
+                    // 파일 URL을 로그로 출력
+                    Log.d("BookSelectionActivity", "Selected file URL: " + fileUrl);
+                    currentProgressBar.setProgress(0);
+
+                    // 시선 추적과 핸들러 중지 및 버튼 비활성화
+                    stopGazeTrackingAndDisableButtons();
+
+                    // 인텐트 시작
+                    Intent intent = new Intent(BookSelectionActivity.this, MainActivity.class);
+                    intent.putExtra("fileUrl", fileUrl); // 파일 URL을 인텐트로 전달
+                    startActivity(intent);
                 }
             }
         };
-        progressHandler.post(progressRunnable);
+        progressHandler.post(progressRunnable); // ProgressBar 시작
     }
 
-    private void handleButtonSelection(ImageButton button) {
-        String fileUrl = buttonUrlMap.get(button);
-        buttonEnabledMap.replaceAll((b, v) -> false);
+    private void stopGazeTrackingAndDisableButtons() {
+        // 시선 추적 중지
+        if (gazeTracker != null) {
+            gazeTracker.stopTracking();
+        }
+        // 핸들러 콜백 제거하여 진행 중지
+        progressHandler.removeCallbacks(progressRunnable);
 
-        Log.d("BookSelectionActivity", "Selected file URL: " + fileUrl);
+        // ProgressBar 숨김
+        if (currentProgressBar != null) {
+            currentProgressBar.setVisibility(View.GONE);
+        }
 
-        currentProgressBar.setProgress(0);
-        currentProgressBar.setVisibility(View.GONE);
-
-        Intent intent = new Intent(BookSelectionActivity.this, MainActivity.class);
-        intent.putExtra("fileUrl", fileUrl);
-        startActivity(intent);
+        // 버튼 비활성화
+        book1.setEnabled(false);
+        book2.setEnabled(false);
+        book3.setEnabled(false);
     }
 
     private void pauseProgressBar() {
-        progressHandler.removeCallbacks(progressRunnable);
+        progressHandler.removeCallbacks(progressRunnable); // 진행 상태 중지
         if (currentProgressBar != null) {
-            currentProgressBar.setVisibility(View.VISIBLE);
+            currentProgressBar.setVisibility(View.VISIBLE); // ProgressBar를 보이도록 설정 (현재 상태 유지)
         }
     }
 }
