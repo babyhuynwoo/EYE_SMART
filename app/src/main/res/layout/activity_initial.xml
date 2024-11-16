@@ -5,50 +5,53 @@
     android:id="@+id/main"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@drawable/splashscreen"
+    android:background="@drawable/gradient_background"
     android:fitsSystemWindows="false"
     tools:context=".InitialActivity">
 
-<com.example.eye_smart.gaze_utils.GazePoint
-    android:id="@+id/gazePointView"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    tools:layout_editor_absoluteX="25dp"
-    tools:layout_editor_absoluteY="-342dp" />
+    <com.example.eye_smart.gaze_utils.GazePoint
+        android:id="@+id/gazePointView"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        tools:layout_editor_absoluteX="25dp"
+        tools:layout_editor_absoluteY="-342dp" />
 
     <TextView
-    android:id="@+id/introduction1"
-    android:layout_width="wrap_content"
-    android:layout_height="wrap_content"
-    android:gravity="center"
-    android:shadowColor="#000000"
-    android:shadowDx="20"
-    android:shadowDy="20"
-    android:elevation="40dp"
-    android:text="eye똑똑해 앱을 실행하려면 \n눈을 깜빡여주세요!"
-    android:textColor="#FFFFFF"
-    app:layout_constraintBottom_toBottomOf="parent"
-    app:layout_constraintEnd_toEndOf="parent"
-    app:layout_constraintHorizontal_bias="0.497"
-    app:layout_constraintStart_toStartOf="parent"
-    app:layout_constraintTop_toTopOf="@+id/gazePointView"
-    app:layout_constraintVertical_bias="0.672" />
-
-    <Button
-    android:id="@+id/skip"
-    android:layout_width="wrap_content"
-    android:layout_height="wrap_content"
-    android:text="skip"
-    app:layout_constraintBottom_toBottomOf="parent"
-    app:layout_constraintEnd_toEndOf="parent"
-    app:layout_constraintStart_toStartOf="parent"
-    app:layout_constraintTop_toBottomOf="@+id/introduction1" />
+        android:id="@+id/introduction1"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:elevation="40dp"
+        android:gravity="center"
+        android:shadowColor="@color/sub_color_950"
+        android:shadowDy="7"
+        android:shadowRadius="15"
+        android:text="eye똑똑해 앱을 실행하려면 \n눈을 깜빡여주세요!"
+        android:textColor="#FFFFFF"
+        android:textSize="15sp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.497"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="@+id/gazePointView"
+        app:layout_constraintVertical_bias="0.672" />
 
     <androidx.constraintlayout.widget.Guideline
-    android:id="@+id/guideline"
-    android:layout_width="wrap_content"
-    android:layout_height="wrap_content"
-    android:orientation="vertical"
-    app:layout_constraintGuide_percent="0.05109489" />
+        android:id="@+id/guideline"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        app:layout_constraintGuide_percent="0.05109489" />
+
+    <ImageView
+        android:id="@+id/imageView"
+        android:layout_width="308dp"
+        android:layout_height="288dp"
+        app:layout_constraintBottom_toBottomOf="@+id/gazePointView"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.495"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="@+id/gazePointView"
+        app:layout_constraintVertical_bias="0.455"
+        app:srcCompat="@drawable/eye_icon_trans" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>
