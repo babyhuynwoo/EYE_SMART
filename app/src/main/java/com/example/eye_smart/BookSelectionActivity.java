@@ -207,4 +207,4 @@ public class BookSelectionActivity extends AppCompatActivity {
             currentProgressBar.setVisibility(View.VISIBLE); // ProgressBar를 보이도록 설정 (현재 상태 유지)
         }
     }
-}
+}//test

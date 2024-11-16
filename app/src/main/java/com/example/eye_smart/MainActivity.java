@@ -140,9 +140,10 @@ public class MainActivity extends AppCompatActivity {
                         isGazingAtWord = true;
                         gazeStartTime = System.currentTimeMillis(); // 초점 시작 시간 기록
                     } else {
-                        // 2초 이상 머무르면 Toast로 단어 표시
+                        // 2초 이상 머무르면 Toast로 단어 표시 및 서버로 전송
                         if (System.currentTimeMillis() - gazeStartTime >= 2000) {
                             showToast(this, word, true); // Toast로 단어 표시
+                            sendTextToServer(word); // 서버로 단어 전송
                         }
                     }
                     return; // 단어를 찾았으므로 종료
@@ -152,6 +153,7 @@ public class MainActivity extends AppCompatActivity {
         }
         isGazingAtWord = false; // 초점이 벗어났을 경우 초기화
     }
+
 
     // 단어의 좌표를 가져오는 메서드
     private int[] getWordCoordinates(Layout layout, int start, int end) {
@@ -294,8 +296,8 @@ public class MainActivity extends AppCompatActivity {
         else textView.setText("이전 페이지가 없습니다.");
     }
 
-    private void sendTextToServer(String text) {
-        serverCommunicator.sendText(text, new ServerCommunicator.ResponseCallback() {
+    private void sendTextToServer(String word) {
+        serverCommunicator.sendWord(word, new ServerCommunicator.ResponseCallback() {
             @Override
             public void onResponse(String responseData) {
                 JsonParser jsonParser = new JsonParser();
@@ -309,4 +311,5 @@ public class MainActivity extends AppCompatActivity {
             }
         });
     }
+
 }
