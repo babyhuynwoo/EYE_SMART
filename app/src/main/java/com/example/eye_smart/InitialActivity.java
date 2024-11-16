@@ -5,8 +5,6 @@ import static com.example.eye_smart.gaze_utils.OptimizeUtils.showToast;
 import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
-import android.view.Window;
-import android.view.WindowManager;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
@@ -33,12 +31,6 @@ public class InitialActivity extends AppCompatActivity {
 
         gazePoint = findViewById(R.id.gazePointView);
         initGazeTracker();
-
-        //상태바를 투명하게 설정
-        Window window = getWindow();
-        window.setFlags(WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
-                WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS);
-
     }
 
     private void initGazeTracker() {

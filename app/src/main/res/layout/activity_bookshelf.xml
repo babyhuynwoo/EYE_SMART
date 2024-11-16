@@ -36,14 +36,6 @@
             android:minHeight="?attr/actionBarSize"
             android:theme="?attr/actionBarTheme" />
 
-        <Button
-            android:id="@+id/reEyeDetection"
-            android:layout_width="146dp"
-            android:layout_height="46dp"
-
-            android:text="재식별"
-            app:icon="@android:drawable/ic_menu_view" />
-
     </FrameLayout>
 
     <ImageButton
@@ -161,5 +153,19 @@
         app:layout_constraintStart_toEndOf="@+id/bookName2"
         app:layout_constraintTop_toBottomOf="@+id/book3"
         app:layout_constraintVertical_bias="0.0" />
+
+    <Button
+        android:id="@+id/reEyeDetection"
+        android:layout_width="146dp"
+        android:layout_height="46dp"
+
+        android:text="재식별"
+        app:icon="@android:drawable/ic_menu_view"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.498"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="@+id/gazePointView"
+        app:layout_constraintVertical_bias="0.96" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

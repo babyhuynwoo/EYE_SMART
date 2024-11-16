@@ -8,8 +8,6 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.view.View;
-import android.view.Window;
-import android.view.WindowManager;
 import android.widget.ProgressBar;
 
 import androidx.activity.EdgeToEdge;
@@ -133,7 +131,6 @@ public class CalibrationActivity extends AppCompatActivity {
 
         backgroundThread.start();
         backgroundHandler = new Handler(backgroundThread.getLooper());
-
     }
 
     private void initializeViews() {

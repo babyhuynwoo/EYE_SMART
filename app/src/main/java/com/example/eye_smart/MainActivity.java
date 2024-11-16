@@ -2,6 +2,7 @@ package com.example.eye_smart;
 
 import static com.example.eye_smart.gaze_utils.OptimizeUtils.showToast;
 
+import android.annotation.SuppressLint;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.Manifest;
@@ -13,7 +14,6 @@ import android.os.Environment;
 import android.provider.Settings;
 import android.text.Layout;
 import android.util.Log;
-import android.view.Window;
 import android.widget.Button;
 import android.widget.TextView;
 
@@ -75,10 +75,6 @@ public class MainActivity extends AppCompatActivity {
 
         // 권한 요청 및 파일 로드
         requestStoragePermission();
-
-        // 상태바 색상 변경
-        Window window = getWindow();
-        window.setStatusBarColor(ContextCompat.getColor(this, R.color.main_color_purple)); // 툴바와 동일한 색상 설정
     }
 
     private void initTracker() {
@@ -113,73 +109,11 @@ public class MainActivity extends AppCompatActivity {
         }
     };
 
-    private void checkGazeOnWord(float gazeX, float gazeY) {
-        // TextView의 Layout 가져오기
-        Layout layout = textView.getLayout();
-        if (layout == null) return;
-
-        // 각 단어에 대한 Rect 영역 확인
-        for (int lineIndex = 0; lineIndex < layout.getLineCount(); lineIndex++) {
-            int lineStartOffset = layout.getLineStart(lineIndex);
-            int lineEndOffset = layout.getLineEnd(lineIndex);
-
-            String lineText = textView.getText().subSequence(lineStartOffset, lineEndOffset).toString();
-            String[] words = lineText.split(" ");
-
-            int wordStart = lineStartOffset;
-            for (String word : words) {
-                int wordEnd = wordStart + word.length();
-                int[] wordCoordinates = getWordCoordinates(layout, wordStart, wordEnd);
-
-                // Rect 영역 생성
-                Rect wordRect = new Rect(wordCoordinates[0], wordCoordinates[1], wordCoordinates[2], wordCoordinates[3]);
-
-                // 초점이 단어 영역에 들어오는지 확인
-                if (wordRect.contains((int) gazeX, (int) gazeY)) {
-                    if (!isGazingAtWord) {
-                        isGazingAtWord = true;
-                        gazeStartTime = System.currentTimeMillis(); // 초점 시작 시간 기록
-                    } else {
-                        // 2초 이상 머무르면 Toast로 단어 표시 및 서버로 전송
-                        if (System.currentTimeMillis() - gazeStartTime >= 2000) {
-                            showToast(this, word, true); // Toast로 단어 표시
-                            sendTextToServer(word); // 서버로 단어 전송
-                        }
-                    }
-                    return; // 단어를 찾았으므로 종료
-                }
-                wordStart = wordEnd + 1; // 다음 단어 시작
-            }
-        }
-        isGazingAtWord = false; // 초점이 벗어났을 경우 초기화
-    }
-
-
-    // 단어의 좌표를 가져오는 메서드
-    private int[] getWordCoordinates(Layout layout, int start, int end) {
-        int lineIndex = layout.getLineForOffset(start);
-        int lineTop = layout.getLineTop(lineIndex);
-        int lineBottom = layout.getLineBottom(lineIndex);
-
-        // 각 단어의 x 좌표 계산
-        float wordStartX = layout.getPrimaryHorizontal(start);
-        float wordEndX = layout.getPrimaryHorizontal(end);
-
-        return new int[]{
-                (int) wordStartX, // 왼쪽
-                lineTop, // 위쪽
-                (int) wordEndX, // 오른쪽
-                lineBottom // 아래쪽
-        };
-    }
-
-
     private void requestStoragePermission() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             if (!Environment.isExternalStorageManager()) {
                 Intent intent = new Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION);
                 intent.setData(Uri.parse("package:" + getPackageName()));
-                startActivityForResult(intent, MANAGE_STORAGE_PERMISSION_REQUEST_CODE);
             } else {
                 loadFileFromIntent();  // 권한이 이미 있는 경우 파일 로드
             }
@@ -231,6 +165,7 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    @SuppressLint("SetTextI18n")
     private void loadFileFromIntent() {
         String fileUrl = getIntent().getStringExtra("fileUrl");
         if (fileUrl != null) {
@@ -255,11 +190,11 @@ public class MainActivity extends AppCompatActivity {
         buttonPrevPage.setOnClickListener(v -> loadPreviousPage());
         buttonNextPage.setOnClickListener(v -> loadNextPage());
 
-        // backBookSelection 버튼 클릭 리스너 추가
+        // 내서재로 버튼 클릭 리스너 설정
         backBookSelection.setOnClickListener(v -> {
-            Intent intent = new Intent(MainActivity.this, BookSelectionActivity.class); // BookSelection으로 이동
+            Intent intent = new Intent(MainActivity.this, BookSelectionActivity.class);
             startActivity(intent);
-            finish(); // 현재 액티비티 종료
+            finish(); // 현재 Activity 종료
         });
     }
 
@@ -275,6 +210,7 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    @SuppressLint("SetTextI18n")
     private void displayPage(int pageNumber) {
         if (pageDisplayer != null && fileLoader != null) {
             pageDisplayer.displayPage(fileLoader, pageNumber, current -> {
@@ -296,8 +232,67 @@ public class MainActivity extends AppCompatActivity {
         else textView.setText("이전 페이지가 없습니다.");
     }
 
-    private void sendTextToServer(String word) {
-        serverCommunicator.sendWord(word, new ServerCommunicator.ResponseCallback() {
+    // 단어의 좌표를 가져오는 메서드
+    private int[] getWordCoordinates(Layout layout, int start, int end) {
+        int lineIndex = layout.getLineForOffset(start);
+        int lineTop = layout.getLineTop(lineIndex);
+        int lineBottom = layout.getLineBottom(lineIndex);
+
+        // 각 단어의 x 좌표 계산
+        float wordStartX = layout.getPrimaryHorizontal(start);
+        float wordEndX = layout.getPrimaryHorizontal(end);
+
+        return new int[]{
+                (int) wordStartX, // 왼쪽
+                lineTop, // 위쪽
+                (int) wordEndX, // 오른쪽
+                lineBottom // 아래쪽
+        };
+    }
+
+    private void checkGazeOnWord(float gazeX, float gazeY) {
+        // TextView의 Layout 가져오기
+        Layout layout = textView.getLayout();
+        if (layout == null) return;
+
+        // 각 단어에 대한 Rect 영역 확인
+        for (int lineIndex = 0; lineIndex < layout.getLineCount(); lineIndex++) {
+            int lineStartOffset = layout.getLineStart(lineIndex);
+            int lineEndOffset = layout.getLineEnd(lineIndex);
+
+            String lineText = textView.getText().subSequence(lineStartOffset, lineEndOffset).toString();
+            String[] words = lineText.split(" ");
+
+            int wordStart = lineStartOffset;
+            for (String word : words) {
+                int wordEnd = wordStart + word.length();
+                int[] wordCoordinates = getWordCoordinates(layout, wordStart, wordEnd);
+
+                // Rect 영역 생성
+                Rect wordRect = new Rect(wordCoordinates[0], wordCoordinates[1], wordCoordinates[2], wordCoordinates[3]);
+
+                // 초점이 단어 영역에 들어오는지 확인
+                if (wordRect.contains((int) gazeX, (int) gazeY)) {
+                    if (!isGazingAtWord) {
+                        isGazingAtWord = true;
+                        gazeStartTime = System.currentTimeMillis(); // 초점 시작 시간 기록
+                    } else {
+                        // 2초 이상 머무르면 Toast로 단어 표시 및 서버로 전송
+                        if (System.currentTimeMillis() - gazeStartTime >= 2000) {
+                            showToast(this, word, true); // Toast로 단어 표시
+                            sendTextToServer(word); // 서버로 단어 전송
+                        }
+                    }
+                    return; // 단어를 찾았으므로 종료
+                }
+                wordStart = wordEnd + 1; // 다음 단어 시작
+            }
+        }
+        isGazingAtWord = false; // 초점이 벗어났을 경우 초기화
+    }
+
+    private void sendTextToServer(String text) {
+        serverCommunicator.sendWord(text, new ServerCommunicator.ResponseCallback() {
             @Override
             public void onResponse(String responseData) {
                 JsonParser jsonParser = new JsonParser();
@@ -311,5 +306,4 @@ public class MainActivity extends AppCompatActivity {
             }
         });
     }
-
 }
