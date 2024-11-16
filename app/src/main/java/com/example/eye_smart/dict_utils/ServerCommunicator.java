@@ -22,7 +22,7 @@ public class ServerCommunicator {
         void onError(String errorMessage);
     }
 
-    public void sendText(String text, ResponseCallback callback) {
+    public void sendWord(String word, ResponseCallback callback) { // 메서드 이름 변경
         OkHttpClient client = new OkHttpClient.Builder()
                 .connectTimeout(100, TimeUnit.SECONDS)
                 .readTimeout(100, TimeUnit.SECONDS)
@@ -31,7 +31,7 @@ public class ServerCommunicator {
 
         JSONObject jsonObject = new JSONObject();
         try {
-            jsonObject.put("text", text);
+            jsonObject.put("word", word); // 키를 "word"로 변경
             Log.d(TAG, "JSON payload created: " + jsonObject.toString());
         } catch (Exception e) {
             e.printStackTrace();
