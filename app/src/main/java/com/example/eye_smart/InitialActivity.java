@@ -3,11 +3,14 @@ package com.example.eye_smart;
 import static com.example.eye_smart.gaze_utils.OptimizeUtils.showToast;
 
 import android.content.Intent;
+import android.graphics.Color;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.Window;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.ContextCompat;
 
 import com.example.eye_smart.gaze_utils.GazeInitializer;
 import com.example.eye_smart.gaze_utils.GazePoint;
@@ -17,6 +20,9 @@ import com.example.eye_smart.gaze_utils.GazeTrackerManager;
 import camp.visual.eyedid.gazetracker.GazeTracker;
 import camp.visual.eyedid.gazetracker.callback.InitializationCallback;
 import camp.visual.eyedid.gazetracker.callback.TrackingCallback;
+import android.view.WindowManager;
+
+
 
 public class InitialActivity extends AppCompatActivity {
     private GazeInitializer gazeInitializer;
@@ -31,6 +37,12 @@ public class InitialActivity extends AppCompatActivity {
 
         gazePoint = findViewById(R.id.gazePointView);
         initGazeTracker();
+
+        // 상태바를 투명하게 설정
+        Window window = getWindow(); // 여기서 window 변수 선언
+        window.setFlags(WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS, WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS);
+        window.setStatusBarColor(Color.TRANSPARENT); // 상태바를 투명하게 설정
+
     }
 
     private void initGazeTracker() {
