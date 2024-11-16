@@ -1,14 +1,19 @@
 package com.example.eye_smart;
 
+import static com.example.eye_smart.gaze_utils.OptimizeUtils.showToast;
+
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.Manifest;
+import android.graphics.Rect;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.provider.Settings;
+import android.text.Layout;
 import android.util.Log;
+import android.view.Window;
 import android.widget.Button;
 import android.widget.TextView;
 
@@ -19,19 +24,31 @@ import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
 import com.example.eye_smart.file_utils.FileLoader;
+import com.example.eye_smart.gaze_utils.GazePoint;
+import com.example.eye_smart.gaze_utils.GazeTrackerManager;
 import com.example.eye_smart.page_view_utils.PageDisplayer;
 import com.example.eye_smart.dict_utils.ServerCommunicator;
 import com.example.eye_smart.dict_utils.JsonParser;
+
+import camp.visual.eyedid.gazetracker.GazeTracker;
+import camp.visual.eyedid.gazetracker.callback.TrackingCallback;
+import camp.visual.eyedid.gazetracker.constant.GazeTrackerOptions;
 
 public class MainActivity extends AppCompatActivity {
     private static final int PERMISSION_REQUEST_CODE = 1;
     private static final int MANAGE_STORAGE_PERMISSION_REQUEST_CODE = 2;
     private int currentPage = 0;
 
+    private GazeTracker gazeTracker;
+    private GazePoint gazePoint;
     private TextView textView;
     private FileLoader fileLoader;
     private PageDisplayer pageDisplayer;
     private ServerCommunicator serverCommunicator;
+
+    private float gazeX, gazeY; // 마지막 시선 위치
+    private long gazeStartTime; // 초점 시작 시간
+    private boolean isGazingAtWord = false; // 단어에 초점이 맞춰졌는지 여부
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -41,13 +58,119 @@ public class MainActivity extends AppCompatActivity {
         // UI 초기화
         initUI();
 
+        // GazePointView 연결
+        gazePoint = findViewById(R.id.gazePointView);
+        // GazeTracker 가져오기
+        gazeTracker = GazeTrackerManager.getInstance().getGazeTracker();
+
+        if (gazeTracker != null) {
+            setupGazeTracking();
+        } else {
+            initTracker();
+        }
+
         // PageDisplayer와 ServerCommunicator 초기화
         pageDisplayer = new PageDisplayer(textView, 3f, 2f);
         serverCommunicator = new ServerCommunicator();
 
         // 권한 요청 및 파일 로드
         requestStoragePermission();
+
+        // 상태바 색상 변경
+        Window window = getWindow();
+        window.setStatusBarColor(ContextCompat.getColor(this, R.color.main_color_purple)); // 툴바와 동일한 색상 설정
     }
+
+    private void initTracker() {
+        GazeTrackerOptions options = new GazeTrackerOptions.Builder().build();
+        GazeTracker.initGazeTracker(this, BuildConfig.EYEDID_API_KEY, (gazeTracker, error) -> {
+            if (gazeTracker != null) {
+                this.gazeTracker = gazeTracker;
+                GazeTrackerManager.getInstance().setGazeTracker(gazeTracker);
+                setupGazeTracking();
+            } else {
+                showToast(this, "GazeTracker 초기화 실패: " + error.name(), true);
+                finish();
+            }
+        }, options);
+    }
+
+    private void setupGazeTracking() {
+        gazeTracker.setTrackingCallback(trackingCallback);
+        GazeTrackerManager.getInstance().startTracking();
+    }
+
+    private final TrackingCallback trackingCallback = (timestamp, gazeInfo, faceInfo, blinkInfo, userStatusInfo) -> {
+        if (gazeInfo != null) {
+            gazeX = gazeInfo.x;
+            gazeY = gazeInfo.y;
+
+            // GazePointView에 시선 위치 업데이트
+            runOnUiThread(() -> {
+                gazePoint.updateGazePoint(gazeX, gazeY);
+                checkGazeOnWord(gazeX, gazeY);
+            });
+        }
+    };
+
+    private void checkGazeOnWord(float gazeX, float gazeY) {
+        // TextView의 Layout 가져오기
+        Layout layout = textView.getLayout();
+        if (layout == null) return;
+
+        // 각 단어에 대한 Rect 영역 확인
+        for (int lineIndex = 0; lineIndex < layout.getLineCount(); lineIndex++) {
+            int lineStartOffset = layout.getLineStart(lineIndex);
+            int lineEndOffset = layout.getLineEnd(lineIndex);
+
+            String lineText = textView.getText().subSequence(lineStartOffset, lineEndOffset).toString();
+            String[] words = lineText.split(" ");
+
+            int wordStart = lineStartOffset;
+            for (String word : words) {
+                int wordEnd = wordStart + word.length();
+                int[] wordCoordinates = getWordCoordinates(layout, wordStart, wordEnd);
+
+                // Rect 영역 생성
+                Rect wordRect = new Rect(wordCoordinates[0], wordCoordinates[1], wordCoordinates[2], wordCoordinates[3]);
+
+                // 초점이 단어 영역에 들어오는지 확인
+                if (wordRect.contains((int) gazeX, (int) gazeY)) {
+                    if (!isGazingAtWord) {
+                        isGazingAtWord = true;
+                        gazeStartTime = System.currentTimeMillis(); // 초점 시작 시간 기록
+                    } else {
+                        // 2초 이상 머무르면 Toast로 단어 표시
+                        if (System.currentTimeMillis() - gazeStartTime >= 2000) {
+                            showToast(this, word, true); // Toast로 단어 표시
+                        }
+                    }
+                    return; // 단어를 찾았으므로 종료
+                }
+                wordStart = wordEnd + 1; // 다음 단어 시작
+            }
+        }
+        isGazingAtWord = false; // 초점이 벗어났을 경우 초기화
+    }
+
+    // 단어의 좌표를 가져오는 메서드
+    private int[] getWordCoordinates(Layout layout, int start, int end) {
+        int lineIndex = layout.getLineForOffset(start);
+        int lineTop = layout.getLineTop(lineIndex);
+        int lineBottom = layout.getLineBottom(lineIndex);
+
+        // 각 단어의 x 좌표 계산
+        float wordStartX = layout.getPrimaryHorizontal(start);
+        float wordEndX = layout.getPrimaryHorizontal(end);
+
+        return new int[]{
+                (int) wordStartX, // 왼쪽
+                lineTop, // 위쪽
+                (int) wordEndX, // 오른쪽
+                lineBottom // 아래쪽
+        };
+    }
+
 
     private void requestStoragePermission() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
@@ -119,15 +242,23 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void initUI() {
-        Toolbar toolbarTop = findViewById(R.id.toolbar_top);
+        Toolbar toolbarTop = findViewById(R.id.toolbar);
         setSupportActionBar(toolbarTop);
 
         textView = findViewById(R.id.textView);
         Button buttonPrevPage = findViewById(R.id.button_prev_page);
         Button buttonNextPage = findViewById(R.id.button_next_page);
+        Button backBookSelection = findViewById(R.id.backBookSelection);
 
         buttonPrevPage.setOnClickListener(v -> loadPreviousPage());
         buttonNextPage.setOnClickListener(v -> loadNextPage());
+
+        // backBookSelection 버튼 클릭 리스너 추가
+        backBookSelection.setOnClickListener(v -> {
+            Intent intent = new Intent(MainActivity.this, BookSelectionActivity.class); // BookSelection으로 이동
+            startActivity(intent);
+            finish(); // 현재 액티비티 종료
+        });
     }
 
     private void loadFileAndDisplay(Uri uri) {
