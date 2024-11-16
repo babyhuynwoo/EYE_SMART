@@ -5,15 +5,15 @@ import static com.example.eye_smart.gaze_utils.OptimizeUtils.showToast;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.Manifest;
-import android.graphics.Color;
+import android.graphics.Rect;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.provider.Settings;
+import android.text.Layout;
 import android.util.Log;
 import android.view.Window;
-import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.TextView;
 
@@ -46,6 +46,10 @@ public class MainActivity extends AppCompatActivity {
     private PageDisplayer pageDisplayer;
     private ServerCommunicator serverCommunicator;
 
+    private float gazeX, gazeY; // 마지막 시선 위치
+    private long gazeStartTime; // 초점 시작 시간
+    private boolean isGazingAtWord = false; // 단어에 초점이 맞춰졌는지 여부
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -75,7 +79,6 @@ public class MainActivity extends AppCompatActivity {
         // 상태바 색상 변경
         Window window = getWindow();
         window.setStatusBarColor(ContextCompat.getColor(this, R.color.main_color_purple)); // 툴바와 동일한 색상 설정
-
     }
 
     private void initTracker() {
@@ -99,16 +102,75 @@ public class MainActivity extends AppCompatActivity {
 
     private final TrackingCallback trackingCallback = (timestamp, gazeInfo, faceInfo, blinkInfo, userStatusInfo) -> {
         if (gazeInfo != null) {
-            float gazeX = gazeInfo.x;
-            float gazeY = gazeInfo.y;
+            gazeX = gazeInfo.x;
+            gazeY = gazeInfo.y;
 
             // GazePointView에 시선 위치 업데이트
             runOnUiThread(() -> {
                 gazePoint.updateGazePoint(gazeX, gazeY);
-                // 버튼이나 다른 UI 요소에 대한 gaze 체크를 추가할 수 있습니다.
+                checkGazeOnWord(gazeX, gazeY);
             });
         }
     };
+
+    private void checkGazeOnWord(float gazeX, float gazeY) {
+        // TextView의 Layout 가져오기
+        Layout layout = textView.getLayout();
+        if (layout == null) return;
+
+        // 각 단어에 대한 Rect 영역 확인
+        for (int lineIndex = 0; lineIndex < layout.getLineCount(); lineIndex++) {
+            int lineStartOffset = layout.getLineStart(lineIndex);
+            int lineEndOffset = layout.getLineEnd(lineIndex);
+
+            String lineText = textView.getText().subSequence(lineStartOffset, lineEndOffset).toString();
+            String[] words = lineText.split(" ");
+
+            int wordStart = lineStartOffset;
+            for (String word : words) {
+                int wordEnd = wordStart + word.length();
+                int[] wordCoordinates = getWordCoordinates(layout, wordStart, wordEnd);
+
+                // Rect 영역 생성
+                Rect wordRect = new Rect(wordCoordinates[0], wordCoordinates[1], wordCoordinates[2], wordCoordinates[3]);
+
+                // 초점이 단어 영역에 들어오는지 확인
+                if (wordRect.contains((int) gazeX, (int) gazeY)) {
+                    if (!isGazingAtWord) {
+                        isGazingAtWord = true;
+                        gazeStartTime = System.currentTimeMillis(); // 초점 시작 시간 기록
+                    } else {
+                        // 2초 이상 머무르면 Toast로 단어 표시
+                        if (System.currentTimeMillis() - gazeStartTime >= 2000) {
+                            showToast(this, word, true); // Toast로 단어 표시
+                        }
+                    }
+                    return; // 단어를 찾았으므로 종료
+                }
+                wordStart = wordEnd + 1; // 다음 단어 시작
+            }
+        }
+        isGazingAtWord = false; // 초점이 벗어났을 경우 초기화
+    }
+
+    // 단어의 좌표를 가져오는 메서드
+    private int[] getWordCoordinates(Layout layout, int start, int end) {
+        int lineIndex = layout.getLineForOffset(start);
+        int lineTop = layout.getLineTop(lineIndex);
+        int lineBottom = layout.getLineBottom(lineIndex);
+
+        // 각 단어의 x 좌표 계산
+        float wordStartX = layout.getPrimaryHorizontal(start);
+        float wordEndX = layout.getPrimaryHorizontal(end);
+
+        return new int[]{
+                (int) wordStartX, // 왼쪽
+                lineTop, // 위쪽
+                (int) wordEndX, // 오른쪽
+                lineBottom // 아래쪽
+        };
+    }
+
 
     private void requestStoragePermission() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
