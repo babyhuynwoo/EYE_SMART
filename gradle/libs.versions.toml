@@ -12,6 +12,7 @@ kotlin-stdlib = "1.9.22"
 kotlin-stdlib-jdk7 = "1.9.20"
 kotlin-stdlib-jdk8 = "1.9.20"
 okhttp = "4.9.3"
+gridlayout = "1.0.0"
 
 [libraries]
 eyedid-gazetracker = { module = "camp.visual.eyedid.android.gazetracker:eyedid-gazetracker", version.ref = "eyedidGazetracker" }
@@ -26,6 +27,7 @@ kotlin-stdlib = { group = "org.jetbrains.kotlin", name = "kotlin-stdlib", versio
 kotlin-stdlib-jdk7 = { group = "org.jetbrains.kotlin", name = "kotlin-stdlib-jdk7", version.ref = "kotlin-stdlib-jdk7" }
 kotlin-stdlib-jdk8 = { group = "org.jetbrains.kotlin", name = "kotlin-stdlib-jdk8", version.ref = "kotlin-stdlib-jdk8" }
 okhttp = { module = "com.squareup.okhttp3:okhttp", version.ref = "okhttp" }
+gridlayout = { group = "androidx.gridlayout", name = "gridlayout", version.ref = "gridlayout" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
