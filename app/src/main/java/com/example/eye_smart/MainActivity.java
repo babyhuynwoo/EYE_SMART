@@ -51,6 +51,8 @@ public class MainActivity extends AppCompatActivity {
 
     private String fileUrl;
     private String currentGazedWord = "";
+    private boolean isGazingPrev = false;
+    private boolean isGazingNext = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -115,6 +117,7 @@ public class MainActivity extends AppCompatActivity {
             runOnUiThread(() -> {
                 gazePoint.updateGazePoint(gazeX, gazeY);
                 checkGazeOnWord(gazeX, gazeY);
+                checkGazeOnButtons(gazeX, gazeY);
             });
         }
     };
@@ -256,6 +259,49 @@ public class MainActivity extends AppCompatActivity {
             Intent intent = new Intent(MainActivity.this, BookSelectionActivity.class);
             startActivity(intent);
             finish();
+        });
+    }
+
+    private void checkGazeOnButtons(float gazeX, float gazeY) {
+        textView.post(() -> { // UI 스레드에서 실행
+            Button buttonPrevPage = findViewById(R.id.button_prev_page);
+            Button buttonNextPage = findViewById(R.id.button_next_page);
+
+            Rect prevButtonRect = new Rect();
+            buttonPrevPage.getGlobalVisibleRect(prevButtonRect);
+
+            Rect nextButtonRect = new Rect();
+            buttonNextPage.getGlobalVisibleRect(nextButtonRect);
+
+            long currentTime = System.currentTimeMillis();
+
+            // 이전 페이지 버튼 시선 확인
+            if (prevButtonRect.contains((int) gazeX, (int) gazeY)) {
+                gazeDuration += currentTime - gazeStartTime; // 시간 누적
+                gazeStartTime = currentTime; // 현재 시간으로 갱신
+
+                if (gazeDuration >= 1000) { // 1초 이상 응시
+                    loadPreviousPage(); // 페이지 전환
+                    Toast.makeText(this, "이전 페이지 버튼 응시", Toast.LENGTH_SHORT).show();
+                    gazeDuration = 0; // 초기화
+                }
+            } else {
+                gazeDuration = 0; // 버튼에서 벗어나면 초기화
+            }
+
+            // 다음 페이지 버튼 시선 확인
+            if (nextButtonRect.contains((int) gazeX, (int) gazeY)) {
+                gazeDuration += currentTime - gazeStartTime; // 시간 누적
+                gazeStartTime = currentTime; // 현재 시간으로 갱신
+
+                if (gazeDuration >= 1000) { // 1초 이상 응시
+                    loadNextPage(); // 페이지 전환
+                    Toast.makeText(this, "다음 페이지 버튼 응시", Toast.LENGTH_SHORT).show();
+                    gazeDuration = 0; // 초기화
+                }
+            } else {
+                gazeDuration = 0; // 버튼에서 벗어나면 초기화
+            }
         });
     }
 
