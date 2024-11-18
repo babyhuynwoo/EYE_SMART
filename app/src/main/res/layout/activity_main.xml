@@ -65,7 +65,7 @@
                 <TextView
                     android:id="@+id/textView"
                     android:layout_width="match_parent"
-                    android:layout_height="606dp"
+                    android:layout_height="match_parent"
                     android:background="#00FFFFFF"
                     android:gravity="center_vertical|start"
                     android:includeFontPadding="false"
@@ -75,7 +75,7 @@
                     android:paddingTop="12dp"
                     android:text="선택된 텍스트가 \n여기에 표시됩니다."
                     android:textColor="@color/text"
-                    android:textSize="30sp" />
+                    android:textSize="40sp" />
 
             </LinearLayout>
 
@@ -88,6 +88,15 @@
                 android:orientation="vertical"
                 android:padding="8dp">
 
+                <Space
+                    android:layout_width="match_parent"
+                    android:layout_height="50dp" />
+
+                <TextView
+                    android:id="@+id/textView3"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:text="응시하면 단어 뜻이 나옵니다." />
             </LinearLayout>
         </LinearLayout>
     </FrameLayout>
@@ -116,7 +125,5 @@
             android:text="다음 페이지"
             android:textColor="@android:color/white" />
     </FrameLayout>
-
-    <!-- 하단 Toolbar에 커스텀 LinearLayout 추가 -->
 
 </LinearLayout>

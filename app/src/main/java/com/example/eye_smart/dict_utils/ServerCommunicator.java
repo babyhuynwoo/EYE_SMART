@@ -31,10 +31,10 @@ public class ServerCommunicator {
 
         JSONObject jsonObject = new JSONObject();
         try {
-            jsonObject.put("word", word); // 키를 "word"로 변경
-            Log.d(TAG, "JSON payload created: " + jsonObject.toString());
+            jsonObject.put("text", word); // Ensure key is 'text'
+            Log.d(TAG, "Sending JSON payload: " + jsonObject.toString());
         } catch (Exception e) {
-            e.printStackTrace();
+            Log.e(TAG, "Error creating JSON payload", e);
             callback.onError("Error creating JSON payload.");
             return;
         }

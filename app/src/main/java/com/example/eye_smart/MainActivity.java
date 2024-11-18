@@ -2,11 +2,9 @@ package com.example.eye_smart;
 
 import static com.example.eye_smart.gaze_utils.OptimizeUtils.showToast;
 
-import android.annotation.SuppressLint;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.Manifest;
-import android.graphics.Color;
 import android.graphics.Rect;
 import android.net.Uri;
 import android.os.Build;
@@ -14,12 +12,11 @@ import android.os.Bundle;
 import android.os.Environment;
 import android.provider.Settings;
 import android.text.Layout;
-import android.util.Log;
 import android.view.Window;
 import android.widget.Button;
 import android.widget.TextView;
+import android.widget.Toast;
 
-import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 import androidx.core.app.ActivityCompat;
@@ -44,13 +41,17 @@ public class MainActivity extends AppCompatActivity {
     private GazeTracker gazeTracker;
     private GazePoint gazePoint;
     private TextView textView;
+    private TextView textView3;
     private FileLoader fileLoader;
     private PageDisplayer pageDisplayer;
     private ServerCommunicator serverCommunicator;
 
-    private float gazeX, gazeY; // 마지막 시선 위치
-    private long gazeStartTime; // 초점 시작 시간
-    private boolean isGazingAtWord = false; // 단어에 초점이 맞춰졌는지 여부
+    private float gazeX, gazeY;
+    private long gazeStartTime;
+    private long gazeDuration; // 누적 응시 시간
+
+    private String fileUrl;
+    private String currentGazedWord = "";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -62,7 +63,6 @@ public class MainActivity extends AppCompatActivity {
 
         // GazePointView 연결
         gazePoint = findViewById(R.id.gazePointView);
-        // GazeTracker 가져오기
         gazeTracker = GazeTrackerManager.getInstance().getGazeTracker();
 
         if (gazeTracker != null) {
@@ -71,16 +71,22 @@ public class MainActivity extends AppCompatActivity {
             initTracker();
         }
 
-        // PageDisplayer와 ServerCommunicator 초기화
         pageDisplayer = new PageDisplayer(textView, 3f, 2f);
         serverCommunicator = new ServerCommunicator();
 
-        // 권한 요청 및 파일 로드
+        fileUrl = getIntent().getStringExtra("fileUrl");
         requestStoragePermission();
 
-        // 상태바 색상 변경
         Window window = getWindow();
-        window.setStatusBarColor(ContextCompat.getColor(this, R.color.main_color_purple)); // 툴바와 동일한 색상 설정
+        window.setStatusBarColor(ContextCompat.getColor(this, R.color.main_color_purple));
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (hasStoragePermission()) {
+            loadFileFromIntent();
+        }
     }
 
     private void initTracker() {
@@ -107,7 +113,6 @@ public class MainActivity extends AppCompatActivity {
             gazeX = gazeInfo.x;
             gazeY = gazeInfo.y;
 
-            // GazePointView에 시선 위치 업데이트
             runOnUiThread(() -> {
                 gazePoint.updateGazePoint(gazeX, gazeY);
                 checkGazeOnWord(gazeX, gazeY);
@@ -115,13 +120,22 @@ public class MainActivity extends AppCompatActivity {
         }
     };
 
-    //Toast 코드 추가
     private void checkGazeOnWord(float gazeX, float gazeY) {
-            // TextView의 Layout 가져오기
+        textView.post(() -> { // Layout이 준비된 이후 실행
             Layout layout = textView.getLayout();
             if (layout == null) return;
 
-            // 각 단어에 대한 Rect 영역 확인
+            // TextView의 화면 상 위치 가져오기
+            int[] textViewLocation = new int[2];
+            textView.getLocationOnScreen(textViewLocation);
+            int textViewTop = textViewLocation[1];
+            int textViewLeft = textViewLocation[0]; // 왼쪽 위치 추가
+
+            // gazeY 조정: 화면 전체 좌표에서 TextView 내부 좌표로 변환
+            float adjustedGazeX = gazeX - textViewLeft; // X 좌표 보정
+            float adjustedGazeY = gazeY - textViewTop;  // Y 좌표 보정
+
+            // 단어별로 좌표를 확인
             for (int lineIndex = 0; lineIndex < layout.getLineCount(); lineIndex++) {
                 int lineStartOffset = layout.getLineStart(lineIndex);
                 int lineEndOffset = layout.getLineEnd(lineIndex);
@@ -132,113 +146,113 @@ public class MainActivity extends AppCompatActivity {
                 int wordStart = lineStartOffset;
                 for (String word : words) {
                     int wordEnd = wordStart + word.length();
-                    int[] wordCoordinates = getWordCoordinates(layout, wordStart, wordEnd);
 
-                    // Rect 영역 생성
+                    if (word.trim().isEmpty()) {
+                        wordStart = wordEnd + 1;
+                        continue;
+                    }
+
+                    int[] wordCoordinates = getWordCoordinates(layout, wordStart, wordEnd);
                     Rect wordRect = new Rect(wordCoordinates[0], wordCoordinates[1], wordCoordinates[2], wordCoordinates[3]);
 
-                    // 초점이 단어 영역에 들어오는지 확인
-                    if (wordRect.contains((int) gazeX, (int) gazeY)) {
-                        if (!isGazingAtWord) {
-                            isGazingAtWord = true;
-                            gazeStartTime = System.currentTimeMillis(); // 초점 시작 시간 기록
+                    // gazeX와 조정된 adjustedGazeY를 사용하여 시선이 단어 영역 안에 있는지 확인
+                    if (wordRect.contains((int) adjustedGazeX, (int) adjustedGazeY)) {
+                        if (!word.equals(currentGazedWord)) {
+                            currentGazedWord = word;
+                            gazeDuration = 0; // 초기화
+                            gazeStartTime = System.currentTimeMillis();
+
+                            // 응시 중인 단어를 Toast로 표시
+                            Toast.makeText(this, "응시 중: " + word, Toast.LENGTH_SHORT).show();
                         } else {
-                            // 2초 이상 머무르면 Toast로 단어 표시
-                            if (System.currentTimeMillis() - gazeStartTime >= 2000) {
-                                showToast(this, word, true); // Toast로 단어 표시
+                            gazeDuration += System.currentTimeMillis() - gazeStartTime;
+                            gazeStartTime = System.currentTimeMillis();
+
+                            if (gazeDuration >= 1000) { // 1초 이상 응시
+                                Toast.makeText(this, "단어 선택: " + word, Toast.LENGTH_SHORT).show();
+                                sendTextToServer(word);
+                                gazeDuration = 0; // 초기화
                             }
                         }
-                        return; // 단어를 찾았으므로 종료
+                        return;
                     }
-                    wordStart = wordEnd + 1; // 다음 단어 시작
+                    wordStart = wordEnd + 1;
                 }
             }
-            isGazingAtWord = false; // 초점이 벗어났을 경우 초기화
-        }
+            currentGazedWord = "";
+            gazeDuration = 0;
+        });
+    }
 
-        // 단어의 좌표를 가져오는 메서드
-        private int[] getWordCoordinates(Layout layout, int start, int end) {
-            int lineIndex = layout.getLineForOffset(start);
-            int lineTop = layout.getLineTop(lineIndex);
-            int lineBottom = layout.getLineBottom(lineIndex);
+    private int[] getWordCoordinates(Layout layout, int start, int end) {
+        int lineIndex = layout.getLineForOffset(start);
+        int lineTop = layout.getLineTop(lineIndex);
+        int lineBottom = layout.getLineBottom(lineIndex);
 
-            // 각 단어의 x 좌표 계산
-            float wordStartX = layout.getPrimaryHorizontal(start);
-            float wordEndX = layout.getPrimaryHorizontal(end);
+        int margin = Math.round(textView.getTextSize() / 2);
+        int paddingY = Math.round(textView.getTextSize() * 0.2f);
+        int offsetY = -Math.round(textView.getTextSize() * 0.1f);
 
-            return new int[]{
-                    (int) wordStartX, // 왼쪽
-                    lineTop, // 위쪽
-                    (int) wordEndX, // 오른쪽
-                    lineBottom // 아래쪽
-            };
-        }
+        int adjustedTop = lineTop - paddingY + margin + offsetY;
+        int adjustedBottom = lineBottom - paddingY + margin + offsetY;
+
+        float wordStartX = layout.getPrimaryHorizontal(start);
+        float wordEndX = layout.getPrimaryHorizontal(end);
+
+        return new int[]{
+                (int) wordStartX,  // 왼쪽 좌표
+                adjustedTop,       // 위쪽 좌표
+                (int) wordEndX,    // 오른쪽 좌표
+                adjustedBottom     // 아래쪽 좌표
+        };
+    }
+
+    private void sendTextToServer(String word) {
+        serverCommunicator.sendWord(word, new ServerCommunicator.ResponseCallback() {
+            @Override
+            public void onResponse(String responseData) {
+                JsonParser jsonParser = new JsonParser();
+                String meaning = jsonParser.parseResponse(responseData);
+                runOnUiThread(() -> textView3.setText(meaning));
+            }
+
+            @Override
+            public void onError(String errorMessage) {
+                runOnUiThread(() -> showToast(MainActivity.this, "서버 오류: " + errorMessage, true));
+            }
+        });
+    }
 
     private void requestStoragePermission() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            if (!Environment.isExternalStorageManager()) {
+        if (hasStoragePermission()) {
+            loadFileFromIntent();
+        } else {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
                 Intent intent = new Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION);
                 intent.setData(Uri.parse("package:" + getPackageName()));
+                startActivityForResult(intent, MANAGE_STORAGE_PERMISSION_REQUEST_CODE);
             } else {
-                loadFileFromIntent();  // 권한이 이미 있는 경우 파일 로드
-            }
-        } else {
-            if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE)
-                    != PackageManager.PERMISSION_GRANTED) {
                 ActivityCompat.requestPermissions(this,
                         new String[]{Manifest.permission.READ_EXTERNAL_STORAGE},
                         PERMISSION_REQUEST_CODE);
-            } else {
-                loadFileFromIntent();  // 권한이 이미 있는 경우 파일 로드
             }
         }
     }
 
-    @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        if (requestCode == PERMISSION_REQUEST_CODE) {
-            handlePermissionResult(grantResults);
-        }
-    }
-
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-        if (requestCode == MANAGE_STORAGE_PERMISSION_REQUEST_CODE && Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            if (Environment.isExternalStorageManager()) {
-                loadFileFromIntent();  // 권한이 허용된 경우 파일 로드
-            } else {
-                displayPermissionError();
-            }
-        }
-    }
-
-    private void handlePermissionResult(int[] grantResults) {
-        if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-            loadFileFromIntent();
+    private boolean hasStoragePermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            return Environment.isExternalStorageManager();
         } else {
-            displayPermissionError();
+            return ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE)
+                    == PackageManager.PERMISSION_GRANTED;
         }
     }
 
-    private void displayPermissionError() {
-        if (ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.READ_EXTERNAL_STORAGE)) {
-            textView.setText("파일 접근 권한이 필요합니다.");
-        } else {
-            textView.setText("파일 접근 권한을 설정에서 허용해야 합니다.");
-        }
-    }
-
-    @SuppressLint("SetTextI18n")
     private void loadFileFromIntent() {
-        String fileUrl = getIntent().getStringExtra("fileUrl");
         if (fileUrl != null) {
-            Log.d("MainActivity", "fileUrl received: " + fileUrl);
             Uri fileUri = Uri.parse(fileUrl);
             loadFileAndDisplay(fileUri);
         } else {
-            Log.d("MainActivity", "fileUrl is null, unable to load file.");
             textView.setText("파일 URL이 전달되지 않았습니다.");
         }
     }
@@ -248,43 +262,39 @@ public class MainActivity extends AppCompatActivity {
         setSupportActionBar(toolbarTop);
 
         textView = findViewById(R.id.textView);
+        textView3 = findViewById(R.id.textView3);
         Button buttonPrevPage = findViewById(R.id.button_prev_page);
         Button buttonNextPage = findViewById(R.id.button_next_page);
         Button backBookSelection = findViewById(R.id.backBookSelection);
 
         buttonPrevPage.setOnClickListener(v -> loadPreviousPage());
         buttonNextPage.setOnClickListener(v -> loadNextPage());
-
-        // 내서재로 버튼 클릭 리스너 설정
         backBookSelection.setOnClickListener(v -> {
             Intent intent = new Intent(MainActivity.this, BookSelectionActivity.class);
             startActivity(intent);
-            finish(); // 현재 Activity 종료
+            finish();
         });
     }
 
     private void loadFileAndDisplay(Uri uri) {
         if (uri != null) {
-            fileLoader = new FileLoader(this, uri);
-            currentPage = 0;
-            displayPage(currentPage);  // 첫 페이지 표시
-            Log.d("MainActivity", "File loaded and displaying page 0.");
+            try {
+                fileLoader = new FileLoader(this, uri);
+                currentPage = 0;
+                displayPage(currentPage);
+            } catch (Exception e) {
+                textView.setText("파일 로드 실패: " + e.getMessage());
+            }
         } else {
             textView.setText("파일을 로드할 수 없습니다.");
-            Log.d("MainActivity", "URI is null, cannot load file.");
         }
     }
 
-    @SuppressLint("SetTextI18n")
     private void displayPage(int pageNumber) {
         if (pageDisplayer != null && fileLoader != null) {
-            pageDisplayer.displayPage(fileLoader, pageNumber, current -> {
-                currentPage = current;
-                Log.d("PageDisplay", "Displayed page number: " + currentPage);
-            });
+            pageDisplayer.displayPage(fileLoader, pageNumber, current -> currentPage = current);
         } else {
             textView.setText("PageDisplayer 또는 FileLoader가 초기화되지 않았습니다.");
-            Log.d("PageDisplay", "PageDisplayer 또는 FileLoader가 초기화되지 않았습니다.");
         }
     }
 
@@ -295,22 +305,5 @@ public class MainActivity extends AppCompatActivity {
     private void loadPreviousPage() {
         if (currentPage > 0) displayPage(--currentPage);
         else textView.setText("이전 페이지가 없습니다.");
-    }
-
-
-    private void sendTextToServer(String text) {
-        serverCommunicator.sendWord(text, new ServerCommunicator.ResponseCallback() {
-            @Override
-            public void onResponse(String responseData) {
-                JsonParser jsonParser = new JsonParser();
-                String displayText = jsonParser.parseResponse(responseData);
-                runOnUiThread(() -> textView.setText(displayText));
-            }
-
-            @Override
-            public void onError(String errorMessage) {
-                runOnUiThread(() -> textView.setText(errorMessage));
-            }
-        });
     }
 }
