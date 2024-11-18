@@ -154,7 +154,7 @@ public class CalibrationView extends ViewGroup {
     }
     // 보정 점 클래스
     private static class CalibrationDot extends View {
-        private static final float DEFAULT_RADIUS_DP = 30f;
+        private static final float DEFAULT_RADIUS_DP = 10f;
 
         private final Paint outerPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         private final Paint innerPaint = new Paint(Paint.ANTI_ALIAS_FLAG);

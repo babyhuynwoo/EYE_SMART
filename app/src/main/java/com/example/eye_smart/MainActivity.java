@@ -35,7 +35,6 @@ import camp.visual.eyedid.gazetracker.constant.GazeTrackerOptions;
 
 public class MainActivity extends AppCompatActivity {
     private static final int PERMISSION_REQUEST_CODE = 1;
-    private static final int MANAGE_STORAGE_PERMISSION_REQUEST_CODE = 2;
     private int currentPage = 0;
 
     private GazeTracker gazeTracker;
@@ -125,16 +124,6 @@ public class MainActivity extends AppCompatActivity {
             Layout layout = textView.getLayout();
             if (layout == null) return;
 
-            // TextView의 화면 상 위치 가져오기
-            int[] textViewLocation = new int[2];
-            textView.getLocationOnScreen(textViewLocation);
-            int textViewTop = textViewLocation[1];
-            int textViewLeft = textViewLocation[0]; // 왼쪽 위치 추가
-
-            // gazeY 조정: 화면 전체 좌표에서 TextView 내부 좌표로 변환
-            float adjustedGazeX = gazeX - textViewLeft; // X 좌표 보정
-            float adjustedGazeY = gazeY - textViewTop;  // Y 좌표 보정
-
             // 단어별로 좌표를 확인
             for (int lineIndex = 0; lineIndex < layout.getLineCount(); lineIndex++) {
                 int lineStartOffset = layout.getLineStart(lineIndex);
@@ -155,15 +144,13 @@ public class MainActivity extends AppCompatActivity {
                     int[] wordCoordinates = getWordCoordinates(layout, wordStart, wordEnd);
                     Rect wordRect = new Rect(wordCoordinates[0], wordCoordinates[1], wordCoordinates[2], wordCoordinates[3]);
 
-                    // gazeX와 조정된 adjustedGazeY를 사용하여 시선이 단어 영역 안에 있는지 확인
-                    if (wordRect.contains((int) adjustedGazeX, (int) adjustedGazeY)) {
+                    // gazeX와 gazeY를 사용하여 시선이 단어 영역 안에 있는지 확인
+                    if (wordRect.contains((int) gazeX, (int) gazeY)) {
                         if (!word.equals(currentGazedWord)) {
                             currentGazedWord = word;
                             gazeDuration = 0; // 초기화
                             gazeStartTime = System.currentTimeMillis();
 
-                            // 응시 중인 단어를 Toast로 표시
-                            Toast.makeText(this, "응시 중: " + word, Toast.LENGTH_SHORT).show();
                         } else {
                             gazeDuration += System.currentTimeMillis() - gazeStartTime;
                             gazeStartTime = System.currentTimeMillis();
@@ -189,21 +176,18 @@ public class MainActivity extends AppCompatActivity {
         int lineTop = layout.getLineTop(lineIndex);
         int lineBottom = layout.getLineBottom(lineIndex);
 
-        int margin = Math.round(textView.getTextSize() / 2);
-        int paddingY = Math.round(textView.getTextSize() * 0.2f);
-        int offsetY = -Math.round(textView.getTextSize() * 0.1f);
-
-        int adjustedTop = lineTop - paddingY + margin + offsetY;
-        int adjustedBottom = lineBottom - paddingY + margin + offsetY;
-
         float wordStartX = layout.getPrimaryHorizontal(start);
         float wordEndX = layout.getPrimaryHorizontal(end);
 
+        // TextView의 패딩 값 보정
+        int paddingTop = textView.getPaddingTop();
+        int paddingLeft = textView.getPaddingLeft();
+
         return new int[]{
-                (int) wordStartX,  // 왼쪽 좌표
-                adjustedTop,       // 위쪽 좌표
-                (int) wordEndX,    // 오른쪽 좌표
-                adjustedBottom     // 아래쪽 좌표
+                (int) wordStartX + paddingLeft,
+                lineTop + paddingTop,
+                (int) wordEndX + paddingLeft,
+                lineBottom + paddingTop
         };
     }
 
@@ -230,7 +214,6 @@ public class MainActivity extends AppCompatActivity {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
                 Intent intent = new Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION);
                 intent.setData(Uri.parse("package:" + getPackageName()));
-                startActivityForResult(intent, MANAGE_STORAGE_PERMISSION_REQUEST_CODE);
             } else {
                 ActivityCompat.requestPermissions(this,
                         new String[]{Manifest.permission.READ_EXTERNAL_STORAGE},
