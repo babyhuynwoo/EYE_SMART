@@ -10,7 +10,6 @@ import android.view.Window;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.content.ContextCompat;
 
 import com.example.eye_smart.gaze_utils.GazeInitializer;
 import com.example.eye_smart.gaze_utils.GazePoint;
@@ -81,6 +80,7 @@ public class InitialActivity extends AppCompatActivity {
             Intent intent = new Intent(InitialActivity.this, CalibrationActivity.class);
             startActivity(intent);
             Log.d("GazeTracker", "Blink Detected.");
+            finish();
         }
     };
 

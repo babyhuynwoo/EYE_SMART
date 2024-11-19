@@ -12,6 +12,7 @@ import android.view.View;
 import android.view.Window;
 import android.widget.ImageButton;
 import android.widget.ProgressBar;
+import android.widget.TextView;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
@@ -33,12 +34,15 @@ public class BookSelectionActivity extends AppCompatActivity {
     private GazePoint gazePoint;
     private final Handler progressHandler = new Handler();
     private Runnable progressRunnable;
-    private ImageButton lastGazedButton = null;
+    private View lastGazedButton = null;
     private ProgressBar currentProgressBar = null;
 
     private final Map<ImageButton, ProgressBar> buttonProgressMap = new HashMap<>();
     private final Map<ImageButton, String> buttonUrlMap = new HashMap<>();
     private final Map<ImageButton, Boolean> buttonEnabledMap = new HashMap<>();
+
+    private final Map<TextView, ProgressBar> textProgressMap = new HashMap<>();
+    private final Map<TextView, String> textActionMap = new HashMap<>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -88,6 +92,21 @@ public class BookSelectionActivity extends AppCompatActivity {
         buttonEnabledMap.put(book1, true);
         buttonEnabledMap.put(book2, true);
         buttonEnabledMap.put(book3, true);
+
+        // TextView 초기화
+        TextView book1Text = findViewById(R.id.book1Text);
+        TextView book2Text = findViewById(R.id.book2Text);
+        TextView book3Text = findViewById(R.id.book3Text);
+
+        // ProgressBar 연결
+        textProgressMap.put(book1Text, progressBarBook1);
+        textProgressMap.put(book2Text, progressBarBook2);
+        textProgressMap.put(book3Text, progressBarBook3);
+
+        // TextView에 대한 동작 정의
+        textActionMap.put(book1Text, "Book 1 Text Selected");
+        textActionMap.put(book2Text, "Book 2 Text Selected");
+        textActionMap.put(book3Text, "Book 3 Text Selected");
     }
 
     private void initTracker() {
@@ -122,8 +141,87 @@ public class BookSelectionActivity extends AppCompatActivity {
     };
 
     private void checkGazeOnButtons(float gazeX, float gazeY) {
+        // 버튼 응시 체크
         for (ImageButton button : buttonProgressMap.keySet()) {
             checkGazeOnButton(button, gazeX, gazeY);
+        }
+        // 텍스트 응시 체크
+        for (TextView textView : textProgressMap.keySet()) {
+            checkGazeOnText(textView, gazeX, gazeY);
+        }
+    }
+
+    private void checkGazeOnText(TextView textView, float gazeX, float gazeY) {
+        int[] location = new int[2];
+        textView.getLocationOnScreen(location);
+        int textX = location[0];
+        int textY = location[1];
+
+        if (gazeX >= textX && gazeX <= textX + textView.getWidth() &&
+                gazeY >= textY && gazeY <= textY + textView.getHeight()) {
+
+            if (lastGazedButton == null) {
+                lastGazedButton = textView;
+                currentProgressBar = textProgressMap.get(textView);
+                startProgressBarForText(textView);
+            }
+        } else {
+            if (lastGazedButton == textView) {
+                pauseProgressBar();
+                lastGazedButton = null;
+            }
+        }
+    }
+
+    private void startProgressBarForText(final TextView textView) {
+        if (currentProgressBar == null) return;
+
+        currentProgressBar.setVisibility(View.VISIBLE);
+
+        progressRunnable = new Runnable() {
+            @Override
+            public void run() {
+                int progress = currentProgressBar.getProgress();
+                if (progress < 100) {
+                    currentProgressBar.setProgress(progress + 2);
+                    progressHandler.postDelayed(this, 10);
+                } else {
+                    handleTextSelection(textView);
+                }
+            }
+        };
+        progressHandler.post(progressRunnable);
+    }
+
+    private void handleTextSelection(TextView textView) {
+        String action = textActionMap.get(textView);
+        int selectedNumber = getTextSelectionNumber(textView); // 텍스트별 숫자 반환 메서드 호출
+
+        Log.d("BookSelectionActivity", "Selected Text Action: " + action);
+
+        currentProgressBar.setProgress(0);
+        currentProgressBar.setVisibility(View.GONE);
+
+        // 텍스트 응시에 따른 작업 추가
+        showToast(this, action, true);
+
+        // Intent로 URL과 숫자 전송
+        Intent intent = new Intent(BookSelectionActivity.this, MainActivity.class);
+        intent.putExtra("textAction", action);
+        intent.putExtra("selectedNumber", selectedNumber);
+        startActivity(intent);
+        finish();
+    }
+
+    private int getTextSelectionNumber(TextView textView) {
+        if (textView == findViewById(R.id.book1Text)) {
+            return 1;
+        } else if (textView == findViewById(R.id.book2Text)) {
+            return 2;
+        } else if (textView == findViewById(R.id.book3Text)) {
+            return 3;
+        } else {
+            return -1; // 기본값
         }
     }
 
@@ -183,6 +281,7 @@ public class BookSelectionActivity extends AppCompatActivity {
         Intent intent = new Intent(BookSelectionActivity.this, MainActivity.class);
         intent.putExtra("fileUrl", fileUrl);
         startActivity(intent);
+        finish();
     }
 
     private void pauseProgressBar() {

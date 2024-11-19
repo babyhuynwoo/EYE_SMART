@@ -201,7 +201,7 @@ public class MainActivity extends AppCompatActivity {
                             gazeDuration += currentTime - gazeStartTime;
                             gazeStartTime = currentTime;
 
-                            if (gazeDuration >= 3000) { // 1초 이상 응시
+                            if (gazeDuration >= 2000) { // 2초 이상 응시
                                 sendTextToServer(word);
                                 gazeDuration = 0; // 초기화
                             }

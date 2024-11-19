@@ -27,21 +27,18 @@
         app:layout_constraintEnd_toEndOf="parent" />
 
     <!-- 책장 이미지 -->
-
-    <!-- 책 버튼들 -->
     <ImageView
         android:id="@+id/shelfImage"
         android:layout_width="0dp"
         android:layout_height="0dp"
-        app:layout_constraintBottom_toTopOf="@+id/reEyeDetection"
+        app:layout_constraintBottom_toBottomOf="@+id/gazePointView"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.0"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/toolbar"
-        app:layout_constraintVertical_bias="0.5"
+        app:layout_constraintTop_toBottomOf="@+id/toolbar"
         app:srcCompat="@drawable/shelf" />
 
-    <!-- Progress Bars -->
+    <!-- 책 버튼들 -->
 
     <ImageButton
         android:id="@+id/book1"
@@ -55,7 +52,7 @@
         app:layout_constraintEnd_toStartOf="@+id/book2"
         app:layout_constraintStart_toStartOf="@id/shelfImage"
         app:layout_constraintTop_toTopOf="@id/shelfImage"
-        app:layout_constraintVertical_bias="0.0"
+        app:layout_constraintVertical_bias="0.164"
         app:layout_constraintWidth_percent="0.25" />
 
     <ImageButton
@@ -70,8 +67,10 @@
         app:layout_constraintEnd_toStartOf="@+id/book3"
         app:layout_constraintStart_toEndOf="@id/book1"
         app:layout_constraintTop_toTopOf="@id/shelfImage"
-        app:layout_constraintVertical_bias="0.0"
+        app:layout_constraintVertical_bias="0.171"
         app:layout_constraintWidth_percent="0.25" />
+
+    <!-- 책 버튼 아래 텍스트 -->
 
     <ImageButton
         android:id="@+id/book3"
@@ -85,8 +84,55 @@
         app:layout_constraintEnd_toEndOf="@id/shelfImage"
         app:layout_constraintStart_toEndOf="@id/book2"
         app:layout_constraintTop_toTopOf="@id/shelfImage"
-        app:layout_constraintVertical_bias="0.0"
+        app:layout_constraintVertical_bias="0.191"
         app:layout_constraintWidth_percent="0.25" />
+
+    <TextView
+        android:id="@+id/book1Text"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="128dp"
+        android:background="#80A9A9A9"
+        android:gravity="center"
+        android:text="샘플 텍스트"
+        android:textColor="@android:color/black"
+        android:textSize="30sp"
+        app:layout_constraintEnd_toEndOf="@id/book1"
+        app:layout_constraintHorizontal_bias="0.0"
+        app:layout_constraintStart_toStartOf="@id/book1"
+        app:layout_constraintTop_toBottomOf="@id/book1" />
+
+    <!-- Progress Bars -->
+
+    <TextView
+        android:id="@+id/book2Text"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="124dp"
+        android:background="#80A9A9A9"
+        android:gravity="center"
+        android:text="샘플 텍스트"
+        android:textColor="@android:color/black"
+        android:textSize="30sp"
+        app:layout_constraintEnd_toEndOf="@id/book2"
+        app:layout_constraintHorizontal_bias="0.0"
+        app:layout_constraintStart_toStartOf="@id/book2"
+        app:layout_constraintTop_toBottomOf="@id/book2" />
+
+    <TextView
+        android:id="@+id/book3Text"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="120dp"
+        android:background="#80A9A9A9"
+        android:gravity="center"
+        android:text="샘플 텍스트"
+        android:textColor="@android:color/black"
+        android:textSize="30sp"
+        app:layout_constraintEnd_toEndOf="@id/book3"
+        app:layout_constraintHorizontal_bias="0.0"
+        app:layout_constraintStart_toStartOf="@id/book3"
+        app:layout_constraintTop_toBottomOf="@id/book3" />
 
     <ProgressBar
         android:id="@+id/progressBarBook1"
@@ -118,16 +164,4 @@
         app:layout_constraintStart_toStartOf="@id/book3"
         app:layout_constraintEnd_toEndOf="@id/book3" />
 
-    <!-- 재식별 버튼 -->
-    <Button
-        android:id="@+id/reEyeDetection"
-        android:layout_width="178dp"
-        android:layout_height="63dp"
-        android:layout_margin="16dp"
-        android:backgroundTint="@color/main_color_purple"
-        android:text="재식별"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/shelfImage" />
 </androidx.constraintlayout.widget.ConstraintLayout>

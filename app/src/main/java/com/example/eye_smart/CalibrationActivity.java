@@ -74,6 +74,7 @@ public class CalibrationActivity extends AppCompatActivity {
             showToast(CalibrationActivity.this, "Calibration Completed", true);
             Intent intent = new Intent(CalibrationActivity.this, BookSelectionActivity.class);
             startActivity(intent);
+            finish();
         }
     };
 
