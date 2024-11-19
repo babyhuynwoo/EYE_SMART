@@ -16,7 +16,8 @@ public class JsonParser {
             displayText.append("InputText: ").append(jsonResponse.optString("InputText", "없음")).append("\n\n");
 
             // Komoran 분석 결과 표시 (ExtractedWords 사용)
-            displayText.append("■ Komoran 형태소 분석 결과\n\n");
+            //displayText.append("■ Komoran 형태소 분석 결과\n\n");
+            displayText.append("■ 인식된 단어 \n\n");
             JSONArray extractedWords = jsonResponse.getJSONArray("ExtractedWords");
             for (int i = 0; i < extractedWords.length(); i++) {
                 displayText.append(extractedWords.getString(i)).append(" ");
