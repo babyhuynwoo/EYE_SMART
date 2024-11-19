@@ -39,7 +39,6 @@
         app:srcCompat="@drawable/shelf" />
 
     <!-- 책 버튼들 -->
-
     <ImageButton
         android:id="@+id/book1"
         android:layout_width="0dp"
@@ -53,7 +52,7 @@
         app:layout_constraintStart_toStartOf="@id/shelfImage"
         app:layout_constraintTop_toTopOf="@id/shelfImage"
         app:layout_constraintVertical_bias="0.164"
-        app:layout_constraintWidth_percent="0.25" />
+        app:layout_constraintWidth_percent="0.23" />
 
     <ImageButton
         android:id="@+id/book2"
@@ -68,8 +67,7 @@
         app:layout_constraintStart_toEndOf="@id/book1"
         app:layout_constraintTop_toTopOf="@id/shelfImage"
         app:layout_constraintVertical_bias="0.171"
-        app:layout_constraintWidth_percent="0.25" />
-
+        app:layout_constraintWidth_percent="0.23" />
 
     <ImageButton
         android:id="@+id/book3"
@@ -84,53 +82,45 @@
         app:layout_constraintStart_toEndOf="@id/book2"
         app:layout_constraintTop_toTopOf="@id/shelfImage"
         app:layout_constraintVertical_bias="0.191"
-        app:layout_constraintWidth_percent="0.25" />
+        app:layout_constraintWidth_percent="0.23" />
 
-    <TextView
-        android:id="@+id/book1Text"
+    <!-- 북마크 버튼들 -->
+    <ImageButton
+        android:id="@+id/bookmark1"
         android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="128dp"
-        android:background="#80A9A9A9"
-        android:gravity="center"
-        android:text="샘플 텍스트"
-        android:textColor="@android:color/black"
-        android:textSize="50sp"
-        app:layout_constraintEnd_toEndOf="@id/book1"
-        app:layout_constraintHorizontal_bias="0.0"
+        android:layout_height="0dp"
+        android:layout_marginTop="16dp"
+        android:background="@drawable/select_bookmark"
+        app:layout_constraintTop_toBottomOf="@id/book1"
         app:layout_constraintStart_toStartOf="@id/book1"
-        app:layout_constraintTop_toBottomOf="@id/book1" />
+        app:layout_constraintEnd_toEndOf="@id/book1"
+        app:layout_constraintWidth_percent="0.15"
+        app:layout_constraintHeight_percent="0.2" />
 
-
-    <TextView
-        android:id="@+id/book2Text"
+    <ImageButton
+        android:id="@+id/bookmark2"
         android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="124dp"
-        android:background="#80A9A9A9"
-        android:gravity="center"
-        android:text="샘플 텍스트"
-        android:textColor="@android:color/black"
-        android:textSize="50sp"
-        app:layout_constraintEnd_toEndOf="@id/book2"
-        app:layout_constraintHorizontal_bias="0.0"
+        android:layout_height="0dp"
+        android:layout_marginTop="16dp"
+        android:background="@drawable/select_bookmark"
+        app:layout_constraintTop_toBottomOf="@id/book2"
         app:layout_constraintStart_toStartOf="@id/book2"
-        app:layout_constraintTop_toBottomOf="@id/book2" />
+        app:layout_constraintEnd_toEndOf="@id/book2"
+        app:layout_constraintWidth_percent="0.15"
+        app:layout_constraintHeight_percent="0.2" />
 
-    <TextView
-        android:id="@+id/book3Text"
+    <ImageButton
+        android:id="@+id/bookmark3"
         android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="120dp"
-        android:background="#80A9A9A9"
-        android:gravity="center"
-        android:text="샘플 텍스트"
-        android:textColor="@android:color/black"
-        android:textSize="50sp"
-        app:layout_constraintEnd_toEndOf="@id/book3"
-        app:layout_constraintHorizontal_bias="0.0"
+        android:layout_height="0dp"
+        android:layout_marginTop="16dp"
+        android:background="@drawable/select_bookmark"
+        app:layout_constraintTop_toBottomOf="@id/book3"
         app:layout_constraintStart_toStartOf="@id/book3"
-        app:layout_constraintTop_toBottomOf="@id/book3" />
+        app:layout_constraintEnd_toEndOf="@id/book3"
+        app:layout_constraintWidth_percent="0.15"
+        app:layout_constraintHeight_percent="0.2" />
+
 
     <ProgressBar
         android:id="@+id/progressBarBook1"
@@ -161,5 +151,4 @@
         app:layout_constraintBottom_toTopOf="@id/book3"
         app:layout_constraintStart_toStartOf="@id/book3"
         app:layout_constraintEnd_toEndOf="@id/book3" />
-
 </androidx.constraintlayout.widget.ConstraintLayout>

@@ -41,8 +41,8 @@ public class BookSelectionActivity extends AppCompatActivity {
     private final Map<ImageButton, String> buttonUrlMap = new HashMap<>();
     private final Map<ImageButton, Boolean> buttonEnabledMap = new HashMap<>();
 
-    private final Map<TextView, ProgressBar> textProgressMap = new HashMap<>();
-    private final Map<TextView, String> textUrlMap = new HashMap<>();
+    private final Map<ImageButton, ProgressBar> bookmarkProgressMap = new HashMap<>();
+    private final Map<ImageButton, String> bookmarkUrlMap = new HashMap<>();
     private final Map<ImageButton, String> buttonTagMap = new HashMap<>();
 
     // 북마크 정보를 저장하기 위한 변수
@@ -107,22 +107,23 @@ public class BookSelectionActivity extends AppCompatActivity {
         buttonTagMap.put(book2, "Book2");
         buttonTagMap.put(book3, "Book3");
 
-        TextView book1Text = findViewById(R.id.book1Text);
-        TextView book2Text = findViewById(R.id.book2Text);
-        TextView book3Text = findViewById(R.id.book3Text);
+        ImageButton book1Text = findViewById(R.id.bookmark1);
+        ImageButton book2Text = findViewById(R.id.bookmark2);
+        ImageButton book3Text = findViewById(R.id.bookmark3);
 
-        textProgressMap.put(book1Text, progressBarBook1);
-        textProgressMap.put(book2Text, progressBarBook2);
-        textProgressMap.put(book3Text, progressBarBook3);
+        bookmarkProgressMap.put(book1Text, progressBarBook1);
+        bookmarkProgressMap.put(book2Text, progressBarBook2);
+        bookmarkProgressMap.put(book3Text, progressBarBook3);
 
-        textUrlMap.put(book1Text, Uri.fromFile(sampleFile1).toString());
-        textUrlMap.put(book2Text, Uri.fromFile(sampleFile2).toString());
-        textUrlMap.put(book3Text, Uri.fromFile(sampleFile3).toString());
+        bookmarkUrlMap.put(book1Text, Uri.fromFile(sampleFile1).toString());
+        bookmarkUrlMap.put(book2Text, Uri.fromFile(sampleFile2).toString());
+        bookmarkUrlMap.put(book3Text, Uri.fromFile(sampleFile3).toString());
 
         book1Text.setTag("Book1");
         book2Text.setTag("Book2");
         book3Text.setTag("Book3");
     }
+
 
     private void initTracker() {
         GazeTrackerOptions options = new GazeTrackerOptions.Builder().build();
@@ -161,34 +162,34 @@ public class BookSelectionActivity extends AppCompatActivity {
             checkGazeOnButton(button, gazeX, gazeY);
         }
         // 텍스트 응시 체크
-        for (TextView textView : textProgressMap.keySet()) {
-            checkGazeOnText(textView, gazeX, gazeY);
+        for (ImageButton imageButton : bookmarkProgressMap.keySet()) {
+            checkGazeOnText(imageButton, gazeX, gazeY);
         }
     }
 
-    private void checkGazeOnText(TextView textView, float gazeX, float gazeY) {
+    private void checkGazeOnText(ImageButton imageButton, float gazeX, float gazeY) {
         int[] location = new int[2];
-        textView.getLocationOnScreen(location);
+        imageButton.getLocationOnScreen(location);
         int textX = location[0];
         int textY = location[1];
 
-        if (gazeX >= textX && gazeX <= textX + textView.getWidth() &&
-                gazeY >= textY && gazeY <= textY + textView.getHeight()) {
+        if (gazeX >= textX && gazeX <= textX + imageButton.getWidth() &&
+                gazeY >= textY && gazeY <= textY + imageButton.getHeight()) {
 
             if (lastGazedButton == null) {
-                lastGazedButton = textView;
-                currentProgressBar = textProgressMap.get(textView);
-                startProgressBarForText(textView);
+                lastGazedButton = imageButton;
+                currentProgressBar = bookmarkProgressMap.get(imageButton);
+                startProgressBarForText(imageButton);
             }
         } else {
-            if (lastGazedButton == textView) {
+            if (lastGazedButton == imageButton) {
                 pauseProgressBar();
                 lastGazedButton = null;
             }
         }
     }
 
-    private void startProgressBarForText(final TextView textView) {
+    private void startProgressBarForText(final ImageButton imageButton) {
         if (currentProgressBar == null) return;
 
         currentProgressBar.setVisibility(View.VISIBLE);
@@ -202,16 +203,16 @@ public class BookSelectionActivity extends AppCompatActivity {
                     currentProgressBar.setProgress(progress + 2);
                     progressHandler.postDelayed(this, 10);
                 } else {
-                    handleTextSelection(textView);
+                    handleTextSelection(imageButton);
                 }
             }
         };
         progressHandler.post(progressRunnable);
     }
 
-    private void handleTextSelection(TextView textView) {
-        String selectedBook = (String) textView.getTag();
-        String fileUrl = textUrlMap.get(textView);
+    private void handleTextSelection(ImageButton imageButton) {
+        String selectedBook = (String) imageButton.getTag();
+        String fileUrl = bookmarkUrlMap.get(imageButton);
 
         currentProgressBar.setProgress(0);
         currentProgressBar.setVisibility(View.GONE);
