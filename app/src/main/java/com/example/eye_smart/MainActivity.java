@@ -144,12 +144,16 @@ public class MainActivity extends AppCompatActivity {
             // 버튼 영역 확인
             Button buttonPrevPage = findViewById(R.id.button_prev_page);
             Button buttonNextPage = findViewById(R.id.button_next_page);
+            Button backBookSelection = findViewById(R.id.backBookSelection);
 
             Rect prevButtonRect = new Rect();
             buttonPrevPage.getGlobalVisibleRect(prevButtonRect);
 
             Rect nextButtonRect = new Rect();
             buttonNextPage.getGlobalVisibleRect(nextButtonRect);
+
+            Rect BookSelection = new Rect();
+            backBookSelection.getGlobalVisibleRect(BookSelection);
 
             long currentTime = System.currentTimeMillis();
 
@@ -180,14 +184,11 @@ public class MainActivity extends AppCompatActivity {
                             gazeDuration = 0; // 초기화
                             gazeStartTime = currentTime;
 
-                            // 응시 중인 단어를 Toast로 표시
-                            Toast.makeText(this, "응시 중: " + word, Toast.LENGTH_SHORT).show();
                         } else {
                             gazeDuration += currentTime - gazeStartTime;
                             gazeStartTime = currentTime;
 
-                            if (gazeDuration >= 1000) { // 1초 이상 응시
-                                Toast.makeText(this, "단어 선택: " + word, Toast.LENGTH_SHORT).show();
+                            if (gazeDuration >= 3000) { // 1초 이상 응시
                                 sendTextToServer(word);
                                 gazeDuration = 0; // 초기화
                             }
@@ -223,6 +224,20 @@ public class MainActivity extends AppCompatActivity {
                 if (gazeDuration >= 1000) { // 1초 이상 응시
                     Toast.makeText(this, "다음버튼", Toast.LENGTH_SHORT).show();
                     loadNextPage(); // 페이지 전환
+                    gazeDuration = 0; // 초기화
+                }
+            } else {
+                gazeDuration = 0; // 버튼에서 벗어나면 초기화
+            }
+
+            if (BookSelection.contains((int) gazeX, (int) gazeY)) {
+                gazeDuration += currentTime - gazeStartTime; // 시간 누적
+                gazeStartTime = currentTime; // 현재 시간으로 갱신
+
+                if (gazeDuration >= 1000) { // 1초 이상 응시
+                    Intent intent = new Intent(MainActivity.this, BookSelectionActivity.class);
+                    startActivity(intent);
+                    finish();
                     gazeDuration = 0; // 초기화
                 }
             } else {
