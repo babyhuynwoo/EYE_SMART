@@ -17,6 +17,8 @@ import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 import androidx.core.app.ActivityCompat;
@@ -51,6 +53,7 @@ public class MainActivity extends AppCompatActivity {
 
     private String fileUrl;
     private String currentGazedWord = "";
+
     private boolean isGazingPrev = false;
     private boolean isGazingNext = false;
 
@@ -158,7 +161,7 @@ public class MainActivity extends AppCompatActivity {
                             gazeDuration += System.currentTimeMillis() - gazeStartTime;
                             gazeStartTime = System.currentTimeMillis();
 
-                            if (gazeDuration >= 1000) { // 1초 이상 응시
+                            if (gazeDuration >= 500) { // 0.5초 이상 응시
                                 Toast.makeText(this, "단어 선택: " + word, Toast.LENGTH_SHORT).show();
                                 sendTextToServer(word);
                                 gazeDuration = 0; // 초기화
@@ -174,6 +177,49 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
+    private void checkGazeOnButtons(float gazeX, float gazeY) {
+        textView.post(() -> { // UI 스레드에서 실행
+            Button buttonPrevPage = findViewById(R.id.button_prev_page);
+            Button buttonNextPage = findViewById(R.id.button_next_page);
+
+            Rect prevButtonRect = new Rect();
+            buttonPrevPage.getGlobalVisibleRect(prevButtonRect);
+
+            Rect nextButtonRect = new Rect();
+            buttonNextPage.getGlobalVisibleRect(nextButtonRect);
+
+            long currentTime = System.currentTimeMillis();
+
+            // 이전 페이지 버튼 시선 확인
+            if (prevButtonRect.contains((int) gazeX, (int) gazeY)) {
+                gazeDuration += currentTime - gazeStartTime; // 시간 누적
+                gazeStartTime = currentTime; // 현재 시간으로 갱신
+
+                if (gazeDuration >= 500) { // 1초 이상 응시
+                    loadPreviousPage(); // 페이지 전환
+                    Toast.makeText(this, "이전 페이지 버튼 응시", Toast.LENGTH_SHORT).show();
+                    gazeDuration = 0; // 초기화
+                }
+            } else {
+                gazeDuration = 0; // 버튼에서 벗어나면 초기화
+            }
+
+            // 다음 페이지 버튼 시선 확인
+            if (nextButtonRect.contains((int) gazeX, (int) gazeY)) {
+                gazeDuration += currentTime - gazeStartTime; // 시간 누적
+                gazeStartTime = currentTime; // 현재 시간으로 갱신
+
+                if (gazeDuration >= 1000) { // 1초 이상 응시
+                    loadNextPage(); // 페이지 전환
+                    Toast.makeText(this, "다음 페이지 버튼 응시", Toast.LENGTH_SHORT).show();
+                    gazeDuration = 0; // 초기화
+                }
+            } else {
+                gazeDuration = 0; // 버튼에서 벗어나면 초기화
+            }
+        });
+    }
+
     private int[] getWordCoordinates(Layout layout, int start, int end) {
         int lineIndex = layout.getLineForOffset(start);
         int lineTop = layout.getLineTop(lineIndex);
@@ -182,15 +228,12 @@ public class MainActivity extends AppCompatActivity {
         float wordStartX = layout.getPrimaryHorizontal(start);
         float wordEndX = layout.getPrimaryHorizontal(end);
 
-        // TextView의 패딩 값 보정
-        int paddingTop = textView.getPaddingTop();
-        int paddingLeft = textView.getPaddingLeft();
 
         return new int[]{
-                (int) wordStartX + paddingLeft,
-                lineTop + paddingTop,
-                (int) wordEndX + paddingLeft,
-                lineBottom + paddingTop
+                (int) wordStartX,
+                lineTop,
+                (int) wordEndX,
+                lineBottom
         };
     }
 
@@ -211,16 +254,46 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void requestStoragePermission() {
-        if (hasStoragePermission()) {
-            loadFileFromIntent();
-        } else {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            if (!Environment.isExternalStorageManager()) {
                 Intent intent = new Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION);
                 intent.setData(Uri.parse("package:" + getPackageName()));
+                startActivityForResult(intent, PERMISSION_REQUEST_CODE);
             } else {
+                loadFileFromIntent();
+            }
+        } else {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE)
+                    != PackageManager.PERMISSION_GRANTED) {
                 ActivityCompat.requestPermissions(this,
                         new String[]{Manifest.permission.READ_EXTERNAL_STORAGE},
                         PERMISSION_REQUEST_CODE);
+            } else {
+                loadFileFromIntent();
+            }
+        }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == PERMISSION_REQUEST_CODE) {
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                loadFileFromIntent();
+            } else {
+                Toast.makeText(this, "권한이 거부되었습니다. 파일을 불러올 수 없습니다.", Toast.LENGTH_SHORT).show();
+            }
+        }
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == PERMISSION_REQUEST_CODE) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R && Environment.isExternalStorageManager()) {
+                loadFileFromIntent();
+            } else {
+                Toast.makeText(this, "권한이 필요합니다. 설정에서 권한을 허용해주세요.", Toast.LENGTH_SHORT).show();
             }
         }
     }
@@ -259,49 +332,6 @@ public class MainActivity extends AppCompatActivity {
             Intent intent = new Intent(MainActivity.this, BookSelectionActivity.class);
             startActivity(intent);
             finish();
-        });
-    }
-
-    private void checkGazeOnButtons(float gazeX, float gazeY) {
-        textView.post(() -> { // UI 스레드에서 실행
-            Button buttonPrevPage = findViewById(R.id.button_prev_page);
-            Button buttonNextPage = findViewById(R.id.button_next_page);
-
-            Rect prevButtonRect = new Rect();
-            buttonPrevPage.getGlobalVisibleRect(prevButtonRect);
-
-            Rect nextButtonRect = new Rect();
-            buttonNextPage.getGlobalVisibleRect(nextButtonRect);
-
-            long currentTime = System.currentTimeMillis();
-
-            // 이전 페이지 버튼 시선 확인
-            if (prevButtonRect.contains((int) gazeX, (int) gazeY)) {
-                gazeDuration += currentTime - gazeStartTime; // 시간 누적
-                gazeStartTime = currentTime; // 현재 시간으로 갱신
-
-                if (gazeDuration >= 1000) { // 1초 이상 응시
-                    loadPreviousPage(); // 페이지 전환
-                    Toast.makeText(this, "이전 페이지 버튼 응시", Toast.LENGTH_SHORT).show();
-                    gazeDuration = 0; // 초기화
-                }
-            } else {
-                gazeDuration = 0; // 버튼에서 벗어나면 초기화
-            }
-
-            // 다음 페이지 버튼 시선 확인
-            if (nextButtonRect.contains((int) gazeX, (int) gazeY)) {
-                gazeDuration += currentTime - gazeStartTime; // 시간 누적
-                gazeStartTime = currentTime; // 현재 시간으로 갱신
-
-                if (gazeDuration >= 1000) { // 1초 이상 응시
-                    loadNextPage(); // 페이지 전환
-                    Toast.makeText(this, "다음 페이지 버튼 응시", Toast.LENGTH_SHORT).show();
-                    gazeDuration = 0; // 초기화
-                }
-            } else {
-                gazeDuration = 0; // 버튼에서 벗어나면 초기화
-            }
         });
     }
 
