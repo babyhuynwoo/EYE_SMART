@@ -110,6 +110,7 @@ public class MainActivity extends AppCompatActivity {
     private void setupGazeTracking() {
         gazeTracker.setTrackingCallback(trackingCallback);
         GazeTrackerManager.getInstance().startTracking();
+        checkGazeOnButtons(gazeX, gazeY);
     }
 
     private final TrackingCallback trackingCallback = (timestamp, gazeInfo, faceInfo, blinkInfo, userStatusInfo) -> {
@@ -120,7 +121,6 @@ public class MainActivity extends AppCompatActivity {
             runOnUiThread(() -> {
                 gazePoint.updateGazePoint(gazeX, gazeY);
                 checkGazeOnWord(gazeX, gazeY);
-                checkGazeOnButtons(gazeX, gazeY);
             });
         }
     };
