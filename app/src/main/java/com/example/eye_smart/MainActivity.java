@@ -32,6 +32,7 @@ import com.example.eye_smart.dict_utils.JsonParser;
 import camp.visual.eyedid.gazetracker.GazeTracker;
 import camp.visual.eyedid.gazetracker.callback.TrackingCallback;
 import camp.visual.eyedid.gazetracker.constant.GazeTrackerOptions;
+import camp.visual.eyedid.gazetracker.metrics.state.TrackingState;
 
 public class MainActivity extends AppCompatActivity {
     private static final int PERMISSION_REQUEST_CODE = 1;
@@ -53,9 +54,7 @@ public class MainActivity extends AppCompatActivity {
     private String fileUrl;
     private String currentGazedWord = "";
 
-    private long eyeClosedStartTime = 0; // 눈을 감기 시작한 시간
-    private boolean isEyeClosed = false; // 눈이 감겨 있는지 여부
-
+    private long gazeMissingStartTime = 0;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -117,10 +116,24 @@ public class MainActivity extends AppCompatActivity {
             gazeX = gazeInfo.x;
             gazeY = gazeInfo.y;
 
+            // Gaze 상태 확인
+            if (gazeInfo.trackingState == TrackingState.GAZE_MISSING) {
+                if (gazeMissingStartTime == 0) {
+                    gazeMissingStartTime = System.currentTimeMillis();
+                } else {
+                    long currentTime = System.currentTimeMillis();
+                    if (currentTime - gazeMissingStartTime >= 2000) {
+                        runOnUiThread(this::handleGazeMissing);
+                        gazeMissingStartTime = 0; // 초기화
+                    }
+                }
+            } else {
+                gazeMissingStartTime = 0;
+            }
+
             runOnUiThread(() -> {
                 gazePoint.updateGazePoint(gazeX, gazeY);
                 checkGaze(gazeX, gazeY);
-
             });
         }
     };
@@ -199,9 +212,6 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
 
-            // 버튼 시선 확인
-            boolean isGazingOnButton = prevButtonRect.contains((int) gazeX, (int) gazeY) || nextButtonRect.contains((int) gazeX, (int) gazeY);
-
             // 이전 페이지 버튼 시선 확인
             if (prevButtonRect.contains((int) gazeX, (int) gazeY)) {
                 gazeDuration += currentTime - gazeStartTime; // 시간 누적
@@ -248,8 +258,12 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-
-
+    private void handleGazeMissing() {
+        showToast(this, "시선이 감지되지 않습니다.", true);
+        Intent intent = new Intent(MainActivity.this, CalibrationActivity.class);
+        startActivity(intent);
+        finish();
+    }
 
     private int[] getWordCoordinates(Layout layout, int start, int end) {
         int lineIndex = layout.getLineForOffset(start);
@@ -343,10 +357,6 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-
-
-
-
     private void loadFileAndDisplay(Uri uri) {
         if (uri != null) {
             try {
@@ -364,7 +374,7 @@ public class MainActivity extends AppCompatActivity {
     private void displayPage(int pageNumber) {
         if (pageDisplayer != null && fileLoader != null) {
             pageDisplayer.displayPage(fileLoader, pageNumber, current -> currentPage = current);
-        } else {
+        }  else {
             textView.setText("PageDisplayer 또는 FileLoader가 초기화되지 않았습니다.");
         }
     }
