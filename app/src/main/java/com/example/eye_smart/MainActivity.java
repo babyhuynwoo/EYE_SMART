@@ -12,6 +12,7 @@ import android.os.Bundle;
 import android.os.Environment;
 import android.provider.Settings;
 import android.text.Layout;
+import android.util.Log;
 import android.view.Window;
 import android.widget.Button;
 import android.widget.TextView;
@@ -77,7 +78,14 @@ public class MainActivity extends AppCompatActivity {
         pageDisplayer = new PageDisplayer(textView, 3f, 2f);
         serverCommunicator = new ServerCommunicator();
 
-        fileUrl = getIntent().getStringExtra("fileUrl");
+        // Intent에서 데이터 읽기
+        Intent intent = getIntent();
+        fileUrl = intent.getStringExtra("fileUrl");
+        currentPage = intent.getIntExtra("selectedNumber", 0); // selectedNumber를 currentPage로 설정
+
+        Log.d("MainActivity", "Received fileUrl: " + fileUrl);
+        Log.d("MainActivity", "Received selectedNumber (currentPage): " + currentPage);
+
         requestStoragePermission();
 
         Window window = getWindow();
@@ -330,12 +338,15 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void loadFileFromIntent() {
-        if (fileUrl != null) {
-            Uri fileUri = Uri.parse(fileUrl);
-            loadFileAndDisplay(fileUri);
-        } else {
+        if (fileUrl == null || fileUrl.isEmpty()) {
             textView.setText("파일 URL이 전달되지 않았습니다.");
+            Log.e("MainActivity", "파일 URL이 null 또는 빈 문자열입니다.");
+            return;
         }
+
+        Log.d("MainActivity", "Received fileUrl: " + fileUrl);
+        Uri fileUri = Uri.parse(fileUrl);
+        loadFileAndDisplay(fileUri);
     }
 
     private void initUI() {
@@ -361,10 +372,10 @@ public class MainActivity extends AppCompatActivity {
         if (uri != null) {
             try {
                 fileLoader = new FileLoader(this, uri);
-                currentPage = 0;
-                displayPage(currentPage);
+                displayPage(currentPage); // selectedNumber에 따라 currentPage 표시
             } catch (Exception e) {
                 textView.setText("파일 로드 실패: " + e.getMessage());
+                Log.e("MainActivity", "파일 로드 오류: ", e);
             }
         } else {
             textView.setText("파일을 로드할 수 없습니다.");

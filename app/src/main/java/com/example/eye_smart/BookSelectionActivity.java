@@ -43,6 +43,7 @@ public class BookSelectionActivity extends AppCompatActivity {
 
     private final Map<TextView, ProgressBar> textProgressMap = new HashMap<>();
     private final Map<TextView, String> textActionMap = new HashMap<>();
+    private final Map<TextView, String> textUrlMap = new HashMap<>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -93,20 +94,21 @@ public class BookSelectionActivity extends AppCompatActivity {
         buttonEnabledMap.put(book2, true);
         buttonEnabledMap.put(book3, true);
 
-        // TextView 초기화
         TextView book1Text = findViewById(R.id.book1Text);
         TextView book2Text = findViewById(R.id.book2Text);
         TextView book3Text = findViewById(R.id.book3Text);
 
-        // ProgressBar 연결
         textProgressMap.put(book1Text, progressBarBook1);
         textProgressMap.put(book2Text, progressBarBook2);
         textProgressMap.put(book3Text, progressBarBook3);
 
-        // TextView에 대한 동작 정의
         textActionMap.put(book1Text, "Book 1 Text Selected");
         textActionMap.put(book2Text, "Book 2 Text Selected");
         textActionMap.put(book3Text, "Book 3 Text Selected");
+
+        textUrlMap.put(book1Text, Uri.fromFile(sampleFile1).toString());
+        textUrlMap.put(book2Text, Uri.fromFile(sampleFile2).toString());
+        textUrlMap.put(book3Text, Uri.fromFile(sampleFile3).toString());
     }
 
     private void initTracker() {
@@ -195,9 +197,11 @@ public class BookSelectionActivity extends AppCompatActivity {
 
     private void handleTextSelection(TextView textView) {
         String action = textActionMap.get(textView);
-        int selectedNumber = getTextSelectionNumber(textView); // 텍스트별 숫자 반환 메서드 호출
+        String fileUrl = textUrlMap.get(textView);
+        int selectedNumber = getTextSelectionNumber(textView);
 
         Log.d("BookSelectionActivity", "Selected Text Action: " + action);
+        Log.d("BookSelectionActivity", "Selected file URL: " + fileUrl);
 
         currentProgressBar.setProgress(0);
         currentProgressBar.setVisibility(View.GONE);
@@ -207,7 +211,7 @@ public class BookSelectionActivity extends AppCompatActivity {
 
         // Intent로 URL과 숫자 전송
         Intent intent = new Intent(BookSelectionActivity.this, MainActivity.class);
-        intent.putExtra("textAction", action);
+        intent.putExtra("fileUrl", fileUrl);
         intent.putExtra("selectedNumber", selectedNumber);
         startActivity(intent);
         finish();
@@ -215,7 +219,7 @@ public class BookSelectionActivity extends AppCompatActivity {
 
     private int getTextSelectionNumber(TextView textView) {
         if (textView == findViewById(R.id.book1Text)) {
-            return 1;
+            return 2;
         } else if (textView == findViewById(R.id.book2Text)) {
             return 2;
         } else if (textView == findViewById(R.id.book3Text)) {
