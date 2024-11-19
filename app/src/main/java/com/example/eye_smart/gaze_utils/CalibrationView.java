@@ -96,7 +96,7 @@ public class CalibrationView extends ViewGroup {
     public void moveToNextDotColor() {
         currentColorIndex = (currentColorIndex + 1) % calibrationPointColors.length;
         calibrationDot.setDotColor(calibrationPointColors[currentColorIndex]);
-        calibrationDot.animateDot(300); // 애니메이션 설정
+        calibrationDot.animateDot(100); // 애니메이션 설정
         invalidate();
     }
 
