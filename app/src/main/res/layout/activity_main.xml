@@ -18,33 +18,45 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:orientation="vertical"
-        android:fitsSystemWindows="true">
+        android:fitsSystemWindows="true"
+        android:orientation="vertical">
 
         <!-- 상단 Toolbar -->
         <FrameLayout
             android:layout_width="match_parent"
-            android:layout_height="48dp"
+            android:layout_height="66dp"
             android:background="#00FFFFFF">
 
             <androidx.appcompat.widget.Toolbar
                 android:id="@+id/toolbar"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:alpha="0.5"
                 android:background="@color/main_color_purple"
                 android:minHeight="?attr/actionBarSize"
-                android:alpha="0.5"
                 android:theme="?attr/actionBarTheme" />
 
             <Button
                 android:id="@+id/backBookSelection"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
+                android:layout_width="645dp"
+                android:layout_height="match_parent"
+                android:alpha="0.8"
                 android:background="@android:color/transparent"
                 android:text="내 서재"
-                android:alpha="0.8"
                 android:textColorLink="@color/main_color_purple"
                 app:icon="@drawable/bookshelf" />
+
+            <!-- 오른쪽에 이미지 버튼 추가 -->
+            <ImageButton
+                android:id="@+id/bookMarkButton"
+                android:layout_width="635dp"
+                android:layout_height="match_parent"
+                android:layout_gravity="end|center_vertical"
+                android:background="@android:color/transparent"
+                android:contentDescription="Image Button"
+                android:scaleType="fitCenter"
+                android:src="@drawable/bookmark" />
+
         </FrameLayout>
 
         <!-- 중간 UI 레이아웃 -->
@@ -95,19 +107,22 @@
                     android:id="@+id/textView3"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
-                    android:text="응시하면 단어 뜻이 나옵니다." />
+                    android:gravity="center"
+                    android:text="응시하면 단어 뜻이 나옵니다."
+                    android:textColor="@color/text"
+                    android:textSize="20sp" />
             </LinearLayout>
         </LinearLayout>
 
         <!-- 하단 버튼 -->
-        <FrameLayout
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="66dp"
             android:background="#00FFFFFF">
 
             <Button
                 android:id="@+id/button_prev_page"
-                android:layout_width="180dp"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_gravity="start|center_vertical"
                 android:layout_weight="1"
@@ -119,8 +134,8 @@
 
             <Button
                 android:id="@+id/button_next_page"
-                android:layout_width="180dp"
-                android:layout_height="wrap_content"
+                android:layout_width="match_parent"
+                android:layout_height="66dp"
                 android:layout_gravity="end|center_vertical"
                 android:layout_weight="1"
                 android:alpha="0.5"
@@ -128,6 +143,6 @@
                 android:padding="16dp"
                 android:text="다음 페이지"
                 android:textColor="@android:color/white" />
-        </FrameLayout>
+        </LinearLayout>
     </LinearLayout>
 </FrameLayout>

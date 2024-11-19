@@ -21,8 +21,6 @@ import camp.visual.eyedid.gazetracker.callback.InitializationCallback;
 import camp.visual.eyedid.gazetracker.callback.TrackingCallback;
 import android.view.WindowManager;
 
-
-
 public class InitialActivity extends AppCompatActivity {
     private GazeInitializer gazeInitializer;
     private GazeTracker gazeTracker;
