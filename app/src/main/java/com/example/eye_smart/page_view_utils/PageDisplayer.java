@@ -84,6 +84,21 @@ public class PageDisplayer {
         return staticLayout.getLineCount();
     }
 
+    // 단어 사이에 공백을 추가하는 메서드
+    private String addExtraSpaces(String line) {
+        StringBuilder modifiedLine = new StringBuilder();
+        String[] words = line.split(" "); // 띄어쓰기 기준으로 단어 나누기
+
+        for (int i = 0; i < words.length; i++) {
+            modifiedLine.append(words[i]);
+            if (i < words.length - 1) {
+                modifiedLine.append("  "); // 추가 공백 삽입
+            }
+        }
+
+        return modifiedLine.toString();
+    }
+
     // 텍스트 스타일링 및 페이지 표시
     public void displayPage(FileLoader fileLoader, int pageNumber, Consumer<Integer> updateCurrentPage) {
         Runnable task = () -> {
@@ -105,6 +120,9 @@ public class PageDisplayer {
                     while ((line = reader.readLine()) != null) {
                         line = line.trim();
                         if (line.isEmpty()) continue;
+
+                        // 단어 간 공백 추가
+                        line = addExtraSpaces(line);
 
                         int lineDisplayLines = getDisplayLineCountForLine(line, textPaint, textViewWidth, textView);
 
