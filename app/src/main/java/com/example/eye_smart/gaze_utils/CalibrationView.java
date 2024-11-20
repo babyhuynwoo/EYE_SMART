@@ -23,11 +23,12 @@ public class CalibrationView extends ViewGroup {
 
     // 시선 보정 점의 색상 배열
     private final int[] calibrationPointColors = {
-            Color.parseColor("#EF5350"), // 빨강색
-            Color.parseColor("#AB47BC"), // 보라색
-            Color.parseColor("#42A5F5"), // 파랑색
-            Color.parseColor("#66BB6A"), // 초록색
-            Color.parseColor("#CA9A00"), // 갈색
+            Color.parseColor("#ffe400"), // 노란색
+            //Color.parseColor("#F7F478"), // 빨강색
+            //Color.parseColor("#AB47BC"), // 보라색
+            //Color.parseColor("#42A5F5"), // 파랑색
+            //Color.parseColor("#66BB6A"), // 초록색
+            //Color.parseColor("#CA9A00"), // 갈색
     };
 
     private int currentColorIndex = 0;
@@ -95,7 +96,7 @@ public class CalibrationView extends ViewGroup {
     public void moveToNextDotColor() {
         currentColorIndex = (currentColorIndex + 1) % calibrationPointColors.length;
         calibrationDot.setDotColor(calibrationPointColors[currentColorIndex]);
-        calibrationDot.animateDot(300); // 애니메이션 설정
+        calibrationDot.animateDot(100); // 애니메이션 설정
         invalidate();
     }
 
@@ -145,7 +146,7 @@ public class CalibrationView extends ViewGroup {
 
         // 기존 메시지 및 다른 요소 그리기
         if (isMessageVisible) {
-            String instructionMessage = "잠시 뒤 나오는 점들을 응시해주세요.";
+            String instructionMessage = "잠시 뒤 나오는 점들을 응시해주세요!";
             float x = getWidth() / 2f;
             float y = getHeight() / 2f - (messagePaint.descent() + messagePaint.ascent()) / 2f;
             canvas.drawText(instructionMessage, x, y, messagePaint);
@@ -153,7 +154,7 @@ public class CalibrationView extends ViewGroup {
     }
     // 보정 점 클래스
     private static class CalibrationDot extends View {
-        private static final float DEFAULT_RADIUS_DP = 30f;
+        private static final float DEFAULT_RADIUS_DP = 10f;
 
         private final Paint outerPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         private final Paint innerPaint = new Paint(Paint.ANTI_ALIAS_FLAG);

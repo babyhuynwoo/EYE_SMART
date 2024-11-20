@@ -1,104 +1,148 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout
+<FrameLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/main"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
     tools:context=".MainActivity">
 
-    <!-- 상단 Toolbar -->
-    <androidx.appcompat.widget.Toolbar
-        android:id="@+id/toolbar_top"
+    <!-- GazePointView 전체화면 적용 -->
+    <com.example.eye_smart.gaze_utils.GazePoint
+        android:id="@+id/gazePointView"
         android:layout_width="match_parent"
-        android:layout_height="?attr/actionBarSize"
-        android:background="?attr/colorPrimary"
-        android:theme="?attr/actionBarTheme" />
+        android:layout_height="match_parent" />
 
-    <!-- 중간 LinearLayout -->
+    <!-- 기존 UI 레이아웃 -->
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
-        android:orientation="horizontal">
+        android:layout_height="match_parent"
+        android:fitsSystemWindows="true"
+        android:orientation="vertical">
 
-        <!-- 왼쪽 LinearLayout (3 비율) -->
-        <LinearLayout
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_weight="3"
-            android:orientation="vertical"
-            android:padding="8dp"
-            tools:ignore="NestedWeights">
+        <!-- 상단 Toolbar -->
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="66dp"
+            android:background="#00FFFFFF">
 
-            <TextView
-                android:id="@+id/textView"
+            <androidx.appcompat.widget.Toolbar
+                android:id="@+id/toolbar"
                 android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:alpha="0.5"
+                android:background="@color/main_color_purple"
+                android:minHeight="?attr/actionBarSize"
+                android:theme="?attr/actionBarTheme" />
+
+            <Button
+                android:id="@+id/backBookSelection"
+                android:layout_width="645dp"
                 android:layout_height="match_parent"
-                android:text="선택된 텍스트가 여기에 표시됩니다."
-                android:textSize="30sp"
-                android:letterSpacing="0.05"
-                android:lineSpacingExtra="5dp"
-                android:textColor="#000000"
-                android:background="#FFFFFF"
-                android:padding="8dp"
-                android:paddingTop="12dp"
-                android:includeFontPadding="false"
-                android:gravity="center_vertical|start" />
-        </LinearLayout>
+                android:alpha="0.8"
+                android:background="@android:color/transparent"
+                android:text="내 서재"
+                android:textColorLink="@color/main_color_purple"
+                app:icon="@drawable/bookshelf" />
 
-        <!-- 오른쪽 LinearLayout (1 비율) -->
-        <LinearLayout
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_weight="1"
-            android:orientation="vertical"
-            android:gravity="center"
-            android:padding="8dp">
+            <!-- 오른쪽에 이미지 버튼 추가 -->
+            <ImageButton
+                android:id="@+id/bookMarkButton"
+                android:layout_width="635dp"
+                android:layout_height="match_parent"
+                android:layout_gravity="end|center_vertical"
+                android:background="@android:color/transparent"
+                android:contentDescription="Image Button"
+                android:scaleType="fitCenter"
+                android:src="@drawable/bookmark" />
 
-        </LinearLayout>
-    </LinearLayout>
+        </FrameLayout>
 
-    <!-- 하단 Toolbar에 커스텀 LinearLayout 추가 -->
-    <androidx.appcompat.widget.Toolbar
-        android:id="@+id/toolbar_bottom"
-        android:layout_width="match_parent"
-        android:layout_height="?attr/actionBarSize"
-        android:background="?attr/colorPrimary"
-        android:theme="?attr/actionBarTheme">
-
-        <!-- 하단 Toolbar 내부에 LinearLayout을 사용하여 정렬 -->
+        <!-- 중간 UI 레이아웃 -->
         <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
             android:orientation="horizontal">
 
-            <!-- 왼쪽으로 정렬된 "이전 페이지" 버튼 -->
-            <Button
-                android:id="@+id/button_prev_page"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="이전 페이지"
-                android:layout_gravity="start|center_vertical"
-                android:padding="16dp"
-                android:textColor="@android:color/white"/>
-
-            <!-- 중간에 공간을 채워서 양 끝으로 배치할 수 있게 조정 -->
-            <View
+            <!-- 왼쪽 LinearLayout -->
+            <LinearLayout
                 android:layout_width="0dp"
                 android:layout_height="match_parent"
-                android:layout_weight="1"/>
+                android:layout_weight="3"
+                android:orientation="vertical"
+                android:padding="8dp">
 
-            <!-- 오른쪽으로 정렬된 "다음 페이지" 버튼 -->
+                <TextView
+                    android:id="@+id/textView"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:background="#00FFFFFF"
+                    android:gravity="center_vertical|start"
+                    android:includeFontPadding="false"
+                    android:letterSpacing="0.05"
+                    android:lineSpacingExtra="5dp"
+                    android:padding="8dp"
+                    android:paddingTop="12dp"
+                    android:text="선택된 텍스트가 \n여기에 표시됩니다."
+                    android:textColor="@color/text"
+                    android:textSize="40sp" />
+            </LinearLayout>
+
+            <!-- 오른쪽 LinearLayout -->
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:orientation="vertical"
+                android:padding="8dp">
+
+                <Space
+                    android:layout_width="match_parent"
+                    android:layout_height="50dp" />
+
+                <TextView
+                    android:id="@+id/textView3"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:gravity="center"
+                    android:text="응시하면 단어 뜻이 나옵니다."
+                    android:textColor="@color/text"
+                    android:textSize="20sp" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- 하단 버튼 -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="66dp"
+            android:background="#00FFFFFF">
+
+            <Button
+                android:id="@+id/button_prev_page"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_gravity="start|center_vertical"
+                android:layout_weight="1"
+                android:alpha="0.5"
+                android:backgroundTint="@color/main_color_purple"
+                android:padding="16dp"
+                android:text="이전 페이지"
+                android:textColor="@android:color/white" />
+
             <Button
                 android:id="@+id/button_next_page"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="다음 페이지"
+                android:layout_width="match_parent"
+                android:layout_height="66dp"
                 android:layout_gravity="end|center_vertical"
+                android:layout_weight="1"
+                android:alpha="0.5"
+                android:backgroundTint="@color/main_color_purple"
                 android:padding="16dp"
-                android:textColor="@android:color/white"/>
+                android:text="다음 페이지"
+                android:textColor="@android:color/white" />
         </LinearLayout>
-    </androidx.appcompat.widget.Toolbar>
-</LinearLayout>
+    </LinearLayout>
+</FrameLayout>

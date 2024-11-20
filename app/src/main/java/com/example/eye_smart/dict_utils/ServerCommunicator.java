@@ -22,7 +22,7 @@ public class ServerCommunicator {
         void onError(String errorMessage);
     }
 
-    public void sendText(String text, ResponseCallback callback) {
+    public void sendWord(String word, ResponseCallback callback) { // 메서드 이름 변경
         OkHttpClient client = new OkHttpClient.Builder()
                 .connectTimeout(100, TimeUnit.SECONDS)
                 .readTimeout(100, TimeUnit.SECONDS)
@@ -31,10 +31,10 @@ public class ServerCommunicator {
 
         JSONObject jsonObject = new JSONObject();
         try {
-            jsonObject.put("text", text);
-            Log.d(TAG, "JSON payload created: " + jsonObject.toString());
+            jsonObject.put("text", word); // Ensure key is 'text'
+            Log.d(TAG, "Sending JSON payload: " + jsonObject.toString());
         } catch (Exception e) {
-            e.printStackTrace();
+            Log.e(TAG, "Error creating JSON payload", e);
             callback.onError("Error creating JSON payload.");
             return;
         }

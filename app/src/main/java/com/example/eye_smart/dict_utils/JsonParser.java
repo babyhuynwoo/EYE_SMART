@@ -8,19 +8,27 @@ public class JsonParser {
     public String parseResponse(String responseData) {
         StringBuilder displayText = new StringBuilder();
         try {
+            // JSON 응답 파싱
             JSONObject jsonResponse = new JSONObject(responseData);
 
-            // Komoran 분석 결과 표시
-            displayText.append("■ Komoran 형태소 분석 결과\n\n");
-            displayText.append("Komoran: ").append(jsonResponse.getString("Komoran")).append("\n\n");
+            // InputText 표시
+            displayText.append("■ 입력된 텍스트\n\n");
+            displayText.append("InputText: ").append(jsonResponse.optString("InputText", "없음")).append("\n\n");
 
-            // Komoran 분석 결과에 해당하는 단어 의미 표시
+            // Komoran 분석 결과 표시 (ExtractedWords 사용)
+            //displayText.append("■ Komoran 형태소 분석 결과\n\n");
+            displayText.append("■ 인식된 단어 \n\n");
+            JSONArray extractedWords = jsonResponse.getJSONArray("ExtractedWords");
+            for (int i = 0; i < extractedWords.length(); i++) {
+                displayText.append(extractedWords.getString(i)).append(" ");
+            }
+            displayText.append("\n\n");
+
+            // 단어 의미 표시
             displayText.append("■ 단어 의미\n\n");
             JSONObject meanings = jsonResponse.getJSONObject("Meanings");
-            JSONArray komoranWords = new JSONArray(jsonResponse.getString("Komoran").split(" "));
-
-            for (int i = 0; i < komoranWords.length(); i++) {
-                String word = komoranWords.getString(i);
+            for (int i = 0; i < extractedWords.length(); i++) {
+                String word = extractedWords.getString(i);
                 if (meanings.has(word)) {
                     JSONObject wordMeanings = meanings.getJSONObject(word);
                     JSONArray standardDict = wordMeanings.getJSONArray("StandardDict");
