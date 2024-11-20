@@ -20,10 +20,11 @@ import android.widget.ImageButton;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
-import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
 import com.example.eye_smart.dict_utils.JsonParser;
@@ -40,7 +41,6 @@ import camp.visual.eyedid.gazetracker.metrics.state.TrackingState;
 
 public class MainActivity extends AppCompatActivity {
     private static final int PERMISSION_REQUEST_CODE = 1;
-    private static final int MANAGE_STORAGE_PERMISSION_REQUEST_CODE = 2;
     private int currentPage = 0;
 
     private GazeTracker gazeTracker;
@@ -58,23 +58,18 @@ public class MainActivity extends AppCompatActivity {
 
     private long gazeMissingStartTime = 0;
 
-    // 북마크 이미지 버튼 관련 변수 추가
     private ImageButton bookMarkButton;
-    private boolean isBookmarked = false; // 현재 북마크 상태
+    private boolean isBookmarked = false;
 
-    // 북마크를 저장하기 위한 SharedPreferences 키
     private static final String PREFS_NAME = "Bookmarks";
     private static final String BOOKMARK_BOOK_KEY = "bookmark_book";
     private static final String BOOKMARK_PAGE_KEY = "bookmark_page";
 
-    // 현재 선택된 책의 이름 또는 ID
     private String currentBook;
 
-    // GazeTarget 클래스 정의
     private class GazeTarget {
         private final Rect rect;
         private long gazeStartTime = 0;
-        private long gazeDuration = 0;
         private final long threshold;
         private final Runnable action;
 
@@ -89,7 +84,7 @@ public class MainActivity extends AppCompatActivity {
                 if (gazeStartTime == 0) {
                     gazeStartTime = System.currentTimeMillis();
                 }
-                gazeDuration = System.currentTimeMillis() - gazeStartTime;
+                long gazeDuration = System.currentTimeMillis() - gazeStartTime;
                 if (gazeDuration >= threshold) {
                     runOnUiThread(action);
                     reset();
@@ -101,7 +96,6 @@ public class MainActivity extends AppCompatActivity {
 
         private void reset() {
             gazeStartTime = 0;
-            gazeDuration = 0;
         }
     }
 
@@ -111,7 +105,9 @@ public class MainActivity extends AppCompatActivity {
     private GazeTarget bookmarkButtonGazeTarget;
 
     private long gazeStartTimeWord = 0;
-    private boolean wordAlreadySent = false; // 추가된 변수
+    private boolean wordAlreadySent = false;
+
+    private ActivityResultLauncher<Intent> manageStoragePermissionLauncher;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -120,6 +116,12 @@ public class MainActivity extends AppCompatActivity {
 
         // UI 초기화
         initUI();
+
+        // Intent에서 데이터 읽기
+        Intent intent = getIntent();
+        fileUrl = intent.getStringExtra("fileUrl");
+        currentPage = intent.getIntExtra("selectedNumber", 0);
+        currentBook = intent.getStringExtra("selectedBook");
 
         // GazePointView 연결
         gazePoint = findViewById(R.id.gazePointView);
@@ -134,15 +136,6 @@ public class MainActivity extends AppCompatActivity {
         pageDisplayer = new PageDisplayer(textView, 3f, 2f);
         serverCommunicator = new ServerCommunicator();
 
-        // Intent에서 데이터 읽기
-        Intent intent = getIntent();
-        fileUrl = intent.getStringExtra("fileUrl");
-        currentPage = intent.getIntExtra("selectedNumber", 0); // selectedNumber를 currentPage로 설정
-        currentBook = intent.getStringExtra("selectedBook");
-
-        Log.d("MainActivity", "Received fileUrl: " + fileUrl);
-        Log.d("MainActivity", "Received selectedNumber (currentPage): " + currentPage);
-
         // 북마크 버튼 설정
         setupBookmarkButton();
 
@@ -155,6 +148,7 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
+        // 권한이 있는 경우에만 파일 로드
         if (hasStoragePermission()) {
             loadFileFromIntent();
         }
@@ -181,10 +175,17 @@ public class MainActivity extends AppCompatActivity {
 
     private final TrackingCallback trackingCallback = (timestamp, gazeInfo, faceInfo, blinkInfo, userStatusInfo) -> {
         if (gazeInfo != null) {
-            gazeX = gazeInfo.x;
-            gazeY = gazeInfo.y;
+            float rawGazeX = gazeInfo.x;
+            float rawGazeY = gazeInfo.y;
 
-            // Gaze 상태 확인
+            // 화면 크기 가져오기
+            int screenWidth = getResources().getDisplayMetrics().widthPixels;
+            int screenHeight = getResources().getDisplayMetrics().heightPixels;
+
+            // Gaze 좌표 클램핑
+            gazeX = Math.max(0, Math.min(rawGazeX, screenWidth));
+            gazeY = Math.max(0, Math.min(rawGazeY, screenHeight));
+
             if (gazeInfo.trackingState == TrackingState.GAZE_MISSING) {
                 if (gazeMissingStartTime == 0) {
                     gazeMissingStartTime = System.currentTimeMillis();
@@ -192,7 +193,7 @@ public class MainActivity extends AppCompatActivity {
                     long currentTime = System.currentTimeMillis();
                     if (currentTime - gazeMissingStartTime >= 2000) {
                         runOnUiThread(this::handleGazeMissing);
-                        gazeMissingStartTime = 0; // 초기화
+                        gazeMissingStartTime = 0;
                     }
                 }
             } else {
@@ -206,22 +207,19 @@ public class MainActivity extends AppCompatActivity {
         }
     };
 
-    // 북마크 버튼 클릭 리스너 설정
     private void setupBookmarkButton() {
-        bookMarkButton.setOnClickListener(v -> {
-            toggleBookmark();
-        });
+        bookMarkButton.setOnClickListener(v -> toggleBookmark());
     }
 
     private void toggleBookmark() {
         if (isBookmarked) {
-            bookMarkButton.setImageResource(R.drawable.bookmark); // 원래 이미지로 변경
+            bookMarkButton.setImageResource(R.drawable.bookmark);
             removeBookmark();
         } else {
-            bookMarkButton.setImageResource(R.drawable.bookmark_trans); // 선택된 이미지로 변경
+            bookMarkButton.setImageResource(R.drawable.bookmark_trans);
             saveBookmark();
         }
-        isBookmarked = !isBookmarked; // 상태 토글
+        isBookmarked = !isBookmarked;
     }
 
     private void saveBookmark() {
@@ -245,18 +243,16 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void checkGaze(float gazeX, float gazeY) {
-        textView.post(() -> { // UI 스레드에서 실행
+        textView.post(() -> {
             Layout layout = textView.getLayout();
             if (layout == null) return;
 
             long currentTime = System.currentTimeMillis();
 
-            // 버튼 및 UI 요소 가져오기
             Button buttonPrevPage = findViewById(R.id.button_prev_page);
             Button buttonNextPage = findViewById(R.id.button_next_page);
             Button backBookSelection = findViewById(R.id.backBookSelection);
 
-            // 버튼 영역 확인
             Rect prevButtonRect = new Rect();
             buttonPrevPage.getGlobalVisibleRect(prevButtonRect);
 
@@ -266,11 +262,9 @@ public class MainActivity extends AppCompatActivity {
             Rect backButtonRect = new Rect();
             backBookSelection.getGlobalVisibleRect(backButtonRect);
 
-            // 북마크 버튼 영역 확인
             Rect bookmarkButtonRect = new Rect();
             bookMarkButton.getGlobalVisibleRect(bookmarkButtonRect);
 
-            // GazeTarget 초기화
             if (prevButtonGazeTarget == null) {
                 prevButtonGazeTarget = new GazeTarget(prevButtonRect, 500, this::loadPreviousPage);
             }
@@ -278,50 +272,49 @@ public class MainActivity extends AppCompatActivity {
                 nextButtonGazeTarget = new GazeTarget(nextButtonRect, 500, this::loadNextPage);
             }
             if (backButtonGazeTarget == null) {
-                backButtonGazeTarget = new GazeTarget(backButtonRect, 1000, () -> {
+                backButtonGazeTarget = new GazeTarget(backButtonRect, 500, () -> {
                     Intent intent = new Intent(MainActivity.this, BookSelectionActivity.class);
                     startActivity(intent);
                     finish();
                 });
             }
             if (bookmarkButtonGazeTarget == null) {
-                bookmarkButtonGazeTarget = new GazeTarget(bookmarkButtonRect, 1000, () -> {
-                    bookMarkButton.performClick();
-                });
+                bookmarkButtonGazeTarget = new GazeTarget(bookmarkButtonRect, 500, bookMarkButton::performClick);
             }
 
-            // Gaze 체크
             prevButtonGazeTarget.checkGaze(gazeX, gazeY);
             nextButtonGazeTarget.checkGaze(gazeX, gazeY);
             backButtonGazeTarget.checkGaze(gazeX, gazeY);
             bookmarkButtonGazeTarget.checkGaze(gazeX, gazeY);
 
-            // 단어 응시 확인
             checkWordGaze(gazeX, gazeY, layout, currentTime);
         });
     }
 
     private void checkWordGaze(float gazeX, float gazeY, Layout layout, long currentTime) {
-        // TextView의 화면 상 위치 가져오기
         int[] textViewLocation = new int[2];
         textView.getLocationOnScreen(textViewLocation);
         int textViewTop = textViewLocation[1];
-        int textViewLeft = textViewLocation[0]; // 왼쪽 위치 추가
+        int textViewLeft = textViewLocation[0];
 
-        // gazeY 조정: 화면 전체 좌표에서 TextView 내부 좌표로 변환
-        float adjustedGazeX = gazeX - textViewLeft; // X 좌표 보정
-        float adjustedGazeY = gazeY - textViewTop;  // Y 좌표 보정
+        float adjustedGazeX = gazeX - textViewLeft;
+        float adjustedGazeY = gazeY - textViewTop;
 
-        boolean gazeOnWord = false; // 현재 시선이 단어 위에 있는지 추적
+        boolean gazeOnWord = false;
 
         for (int lineIndex = 0; lineIndex < layout.getLineCount(); lineIndex++) {
             int lineStartOffset = layout.getLineStart(lineIndex);
             int lineEndOffset = layout.getLineEnd(lineIndex);
 
-            String lineText = textView.getText().subSequence(lineStartOffset, lineEndOffset).toString();
+            int safeStart = Math.max(0, Math.min(lineStartOffset, textView.getText().length()));
+            int safeEnd = Math.max(0, Math.min(lineEndOffset, textView.getText().length()));
+
+            if (safeStart >= safeEnd) continue;
+
+            String lineText = textView.getText().subSequence(safeStart, safeEnd).toString();
             String[] words = lineText.split(" ");
 
-            int wordStart = lineStartOffset;
+            int wordStart = safeStart;
             for (String word : words) {
                 int wordEnd = wordStart + word.length();
 
@@ -330,33 +323,32 @@ public class MainActivity extends AppCompatActivity {
                     continue;
                 }
 
-                int[] wordCoordinates = getWordCoordinates(layout, wordStart, wordEnd);
+                float textSize = textView.getTextSize();
+
+                int[] wordCoordinates = getWordCoordinates(layout, wordStart, wordEnd, textSize, 10, -50);
                 Rect wordRect = new Rect(wordCoordinates[0], wordCoordinates[1], wordCoordinates[2], wordCoordinates[3]);
 
-                // 시선이 단어 영역 안에 있는지 확인
                 if (wordRect.contains((int) adjustedGazeX, (int) adjustedGazeY)) {
-                    gazeOnWord = true; // 시선이 단어 위에 있음
+                    gazeOnWord = true;
                     if (!word.equals(currentGazedWord)) {
                         currentGazedWord = word;
                         gazeStartTimeWord = currentTime;
-                        wordAlreadySent = false; // 새로운 단어에 대한 요청 가능 상태로 변경
+                        wordAlreadySent = false;
                     } else {
                         long gazeDurationWord = currentTime - gazeStartTimeWord;
-
-                        if (gazeDurationWord >= 1000 && !wordAlreadySent) { // 2초 이상 응시 & 요청 미전송
+                        if (gazeDurationWord >= 1000 && !wordAlreadySent) {
                             sendTextToServer(word);
                             showToast(this, word, true);
-                            wordAlreadySent = true; // 요청 전송 상태로 변경
+                            wordAlreadySent = true;
                         }
                     }
-                    break; // 현재 단어를 찾았으므로 더 이상 검색하지 않음
+                    break;
                 }
                 wordStart = wordEnd + 1;
             }
-            if (gazeOnWord) break; // 시선이 단어 위에 있으므로 더 이상 라인 검색 필요 없음
+            if (gazeOnWord) break;
         }
 
-        // 시선이 단어를 벗어난 경우 상태 초기화
         if (!gazeOnWord) {
             currentGazedWord = "";
             gazeStartTimeWord = 0;
@@ -371,26 +363,26 @@ public class MainActivity extends AppCompatActivity {
         finish();
     }
 
-    private int[] getWordCoordinates(Layout layout, int start, int end) {
-        int lineIndex = layout.getLineForOffset(start);
-        int lineTop = layout.getLineTop(lineIndex);
-        int lineBottom = layout.getLineBottom(lineIndex);
+    private int[] getWordCoordinates(Layout layout, int start, int end, float textSize, int paddingY, int offsetY) {
+        int lineIndex = layout.getLineForOffset(start); // 해당 단어가 위치한 줄의 인덱스를 얻음
+        int lineTop = layout.getLineTop(lineIndex); // 해당 줄의 상단 좌표
+        int lineBottom = layout.getLineBottom(lineIndex); // 해당 줄의 하단 좌표
 
-        int margin = Math.round(textView.getTextSize() / 2);
-        int paddingY = Math.round(textView.getTextSize() * 0.2f);
-        int offsetY = -Math.round(textView.getTextSize() * 0.1f);
+        float wordStartX = layout.getPrimaryHorizontal(start); // 단어 시작 x 좌표
+        float wordEndX = layout.getPrimaryHorizontal(end); // 단어 끝 x 좌표
 
+        int margin = Math.round(textSize / 2);
         int adjustedTop = lineTop - paddingY + margin + offsetY;
         int adjustedBottom = lineBottom - paddingY + margin + offsetY;
 
-        float wordStartX = layout.getPrimaryHorizontal(start);
-        float wordEndX = layout.getPrimaryHorizontal(end);
+        // 상하좌우 여백 적용 (좌우 여백 추가)
+        int horizontalPadding = Math.round(textSize * 0.1f);
 
         return new int[]{
-                (int) wordStartX,  // 왼쪽 좌표
-                adjustedTop,       // 위쪽 좌표
-                (int) wordEndX,    // 오른쪽 좌표
-                adjustedBottom     // 아래쪽 좌표
+                (int) wordStartX - horizontalPadding, // 왼쪽 x 좌표
+                adjustedTop,                          // 위쪽 y 좌표
+                (int) wordEndX + horizontalPadding,   // 오른쪽 x 좌표
+                adjustedBottom                        // 아래쪽 y 좌표
         };
     }
 
@@ -411,18 +403,16 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void requestStoragePermission() {
-        if (hasStoragePermission()) {
-            loadFileFromIntent();
-        } else {
+        if (!hasStoragePermission()) {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
                 Intent intent = new Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION);
                 intent.setData(Uri.parse("package:" + getPackageName()));
-                startActivityForResult(intent, MANAGE_STORAGE_PERMISSION_REQUEST_CODE);
+                manageStoragePermissionLauncher.launch(intent);
             } else {
-                ActivityCompat.requestPermissions(this,
-                        new String[]{Manifest.permission.READ_EXTERNAL_STORAGE},
-                        PERMISSION_REQUEST_CODE);
+                requestPermissions(new String[]{Manifest.permission.READ_EXTERNAL_STORAGE}, PERMISSION_REQUEST_CODE);
             }
+        } else {
+            loadFileFromIntent();
         }
     }
 
@@ -442,7 +432,6 @@ public class MainActivity extends AppCompatActivity {
             return;
         }
 
-        Log.d("MainActivity", "Received fileUrl: " + fileUrl);
         Uri fileUri = Uri.parse(fileUrl);
         loadFileAndDisplay(fileUri);
     }
@@ -465,13 +454,25 @@ public class MainActivity extends AppCompatActivity {
             startActivity(intent);
             finish();
         });
+
+        manageStoragePermissionLauncher = registerForActivityResult(
+                new ActivityResultContracts.StartActivityForResult(),
+                result -> {
+                    if (hasStoragePermission()) {
+                        loadFileFromIntent();
+                    } else {
+                        Toast.makeText(this, "저장소 관리 권한이 필요합니다.", Toast.LENGTH_SHORT).show();
+                        finish();
+                    }
+                }
+        );
     }
 
     private void loadFileAndDisplay(Uri uri) {
         if (uri != null) {
             try {
                 fileLoader = new FileLoader(this, uri);
-                displayPage(currentPage); // selectedNumber에 따라 currentPage 표시
+                displayPage(currentPage);
             } catch (Exception e) {
                 textView.setText("파일 로드 실패: " + e.getMessage());
                 Log.e("MainActivity", "파일 로드 오류: ", e);
@@ -509,18 +510,5 @@ public class MainActivity extends AppCompatActivity {
                 finish();
             }
         }
-    }
-
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        if (requestCode == MANAGE_STORAGE_PERMISSION_REQUEST_CODE) {
-            if (hasStoragePermission()) {
-                loadFileFromIntent();
-            } else {
-                Toast.makeText(this, "저장소 관리 권한이 필요합니다.", Toast.LENGTH_SHORT).show();
-                finish();
-            }
-        }
-        super.onActivityResult(requestCode, resultCode, data);
     }
 }
