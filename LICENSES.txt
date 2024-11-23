@@ -33,5 +33,5 @@
    Copyright (c) 2011 The Android Open Source Project
 
 9. Eyedid Android SDK
-    Reference from : https://github.com/visualcamp/eyedid-android-sample
+    Reference from : Eyedid SDK Trial License https://github.com/visualcamp/eyedid-android-sample
    Copyright © 2024 VisualCamp. All right reserved.
